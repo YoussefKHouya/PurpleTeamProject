@@ -1,0 +1,17 @@
+# Secrets and local credentials
+.env
+.local/
+*.pem
+*.key
+credentials*
+secrets*
+
+# Local Wazuh output
+alerts.json
+archives.json
+*.log
+
+# Editor/system files
+.vscode/
+.idea/
+.DS_Store
