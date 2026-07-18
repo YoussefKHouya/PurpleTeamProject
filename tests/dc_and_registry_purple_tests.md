@@ -14,16 +14,16 @@ Purpose: controlled, MITRE-mapped Wazuh validation against approved lab assets. 
 ## Credential setup
 
 ```powershell
-$cred = Get-Credential '<DOMAIN>\\<TEST_USER>'
+$cred = Get-Credential 'SIMULATION\yassine.karimi'
 ```
 
 Placeholders:
 
 ```text
-<DOMAIN>          approved lab domain
-<TEST_USER>       approved test identity
-<DC_HOST_OR_IP>   approved domain-controller endpoint
-<TEST_DOMAIN>     approved DNS domain name
+<DOMAIN>          simulation.local
+<TEST_USER>       yassine.karimi
+<DC_HOST_OR_IP>   192.168.56.109
+<TEST_DOMAIN>     simulation.local
 ```
 
 ## DC/domain discovery tests
@@ -80,7 +80,7 @@ ATT&CK: T1021.006, T1059.001
 
 ```powershell
 Invoke-Command `
-  -ComputerName <DC_HOST_OR_IP> `
+  -ComputerName 192.168.56.109 `
   -Credential $cred `
   -Authentication Negotiate `
   -ScriptBlock { whoami; hostname; Get-Date }
@@ -91,8 +91,8 @@ Invoke-Command `
 ATT&CK: T1016, T1059.001
 
 ```powershell
-nltest.exe /dsgetdc:<TEST_DOMAIN>
-nltest.exe /dclist:<TEST_DOMAIN>
+nltest.exe /dsgetdc:simulation.local
+nltest.exe /dclist:simulation.local
 ```
 
 ## Registry read tests
