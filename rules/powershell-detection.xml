@@ -1,0 +1,519 @@
+<!--
+  File: powershell-detection.xml
+  Purpose: Hierarchical Wazuh detections for suspicious PowerShell process execution and discovery
+  Data source: Windows Security Event ID 4688
+
+  Requirements:
+    - Audit Process Creation = Success
+    - Include command line in process creation events = Enabled
+    - Parent Wazuh rule in this lab = 67027
+
+  Design (v3):
+    1. Rule 100100 silently identifies PowerShell process creation.
+    2. Wazuh evaluates sibling child rules IN FILE ORDER and stops at the
+       first match. Therefore all rules below are direct children of
+       100100, ordered from most specific / highest severity to least.
+       An event always fires the single most severe rule it satisfies.
+    3. Combination rules (100130-100137, 100118) use multiple <field>
+       entries, which Wazuh combines with AND. 100137 catches download +
+       IEX-free execution (Import-Module, call operator, Add-Type, .Invoke).
+    4. Atomic rules (100110-100120) act as fallback when no combination
+       matches. 100120 catches IEX-free execution / module loads.
+    5. Built-in Wazuh rules are not modified or overwritten.
+-->
+
+<group name="windows,powershell,powershell_execution,">
+
+  <!-- BASE RULE                                                     -->
+  <rule id="100100" level="0" noalert="1">
+    <if_sid>67027</if_sid>
+
+    <field name="win.system.eventID">^4688$</field>
+
+    <field name="win.eventdata.newProcessName"
+           type="pcre2">(?i)\\(?:powershell|pwsh)\.exe$</field>
+
+    <description>PowerShell process creation base rule</description>
+  </rule>
+
+
+  <!-- HIGH-RISK COMBINATION RULES (evaluated first)                 -->
+  <!-- Multiple <field> conditions are AND'd together.               -->
+
+  <!-- Full attack chain: download + dynamic execution + policy bypass + hidden window -->
+  <rule id="100136" level="13">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:invoke-expression|\biex\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:executionpolicy|ep)\s+(?:bypass|unrestricted)\b</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:windowstyle|w)\s+(?:hidden|minimized)\b</field>
+
+    <description>High-confidence PowerShell attack chain: hidden execution, policy bypass, remote retrieval and dynamic execution: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+      <id>T1564.003</id>
+    </mitre>
+
+    <group>powershell_multi_indicator_attack,high_confidence,critical,</group>
+  </rule>
+
+
+  <!-- Download + dynamic execution (classic download cradle) -->
+  <rule id="100130" level="12">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:invoke-expression|\biex\b)</field>
+
+    <description>PowerShell downloaded remote content and invoked dynamic execution: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+
+    <group>powershell_download_and_execute,high_confidence,</group>
+  </rule>
+
+
+  <!-- Download + IEX-free execution (module load / call operator / Add-Type / .Invoke) -->
+  <rule id="100137" level="12">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bimport-module\b|\bipmo\b|\badd-type\b|\binvoke-command\b|\bicm\b|\.invoke\s*\()</field>
+
+    <description>PowerShell downloaded remote content and loaded/executed it without IEX: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+
+    <group>powershell_download_and_execute,high_confidence,</group>
+  </rule>
+
+
+  <!-- Suspicious parent + download -->
+  <rule id="100135" level="12">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:winword|excel|powerpnt|outlook|mshta|wscript|cscript|rundll32|regsvr32)\.exe$</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <description>PowerShell launched by suspicious parent and retrieved remote content: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+
+    <group>powershell_suspicious_parent_download,high_confidence,</group>
+  </rule>
+
+
+  <!-- svchost parent + suspicious arguments -->
+  <rule id="100118" level="11">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\svchost\.exe$</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:-enc(?:odedcommand)?\b|-executionpolicy\s+bypass|invoke-expression|\biex\b|downloadstring|downloadfile|invoke-webrequest|net\.webclient|frombase64string|-windowstyle\s+hidden)</field>
+
+    <description>Suspicious PowerShell execution launched through a Windows service: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1543.003</id>
+    </mitre>
+
+    <group>powershell_service_execution,suspicious_svchost_parent,</group>
+  </rule>
+
+
+  <!-- Download + policy bypass -->
+  <rule id="100131" level="11">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:executionpolicy|ep)\s+(?:bypass|unrestricted)\b</field>
+
+    <description>PowerShell remote-content retrieval with execution-policy bypass detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+
+    <group>powershell_download_policy_bypass,high_confidence,</group>
+  </rule>
+
+
+  <!-- Download + hidden window -->
+  <rule id="100132" level="11">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:windowstyle|w)\s+(?:hidden|minimized)\b</field>
+
+    <description>PowerShell remote-content retrieval launched with a hidden window: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+      <id>T1564.003</id>
+    </mitre>
+
+    <group>powershell_hidden_download,high_confidence,</group>
+  </rule>
+
+
+  <!-- Base64 decoding + dynamic execution -->
+  <rule id="100133" level="11">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:frombase64string|tobase64string)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:invoke-expression|\biex\b)</field>
+
+    <description>PowerShell Base64 content combined with dynamic execution detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+
+    <group>powershell_base64_execution,high_confidence,</group>
+  </rule>
+
+
+  <!-- Encoded command + policy bypass -->
+  <rule id="100134" level="11">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:e|en|enc|enco|encod|encodedcommand)\s+["']?[A-Za-z0-9+/=]{8,}</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:executionpolicy|ep)\s+(?:bypass|unrestricted)\b</field>
+
+    <description>Encoded PowerShell command executed with policy bypass: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+
+    <group>powershell_encoded_policy_bypass,high_confidence,</group>
+  </rule>
+
+
+  <!-- Combined DC discovery + domain account enumeration -->
+  <rule id="100138" level="10">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnltest(?:\.exe)?\s+/(?:dsgetdc|dclist)\b|\bget-addomain(?:controller)?\b|\bget-adforest\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnet(?:\.exe)?\s+user\s+/domain\b|\bget-aduser\b|\[adsisearcher\]|directorysearcher)</field>
+
+    <description>PowerShell combined domain-controller discovery and domain-account enumeration detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1018</id>
+      <id>T1087.002</id>
+    </mitre>
+
+    <group>powershell_domain_discovery,domain_account_discovery,high_confidence,</group>
+  </rule>
+
+
+  <!-- Registry Run/RunOnce persistence modification -->
+  <rule id="100139" level="10">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnew-itemproperty\b|\bset-itemproperty\b|\bremove-itemproperty\b|\breg(?:\.exe)?\s+(?:add|delete)\b)</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:currentversion\\+run(?:once)?\b|\\+run(?:once)?\b)</field>
+
+    <description>PowerShell modified a Registry Run or RunOnce persistence location: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1112</id>
+      <id>T1547.001</id>
+    </mitre>
+
+    <group>powershell_registry_persistence,registry_run_keys,high_confidence,</group>
+  </rule>
+
+
+  <!-- ATOMIC DETECTIONS (fallback, ordered by severity)             -->
+
+  <!-- Encoded command -->
+  <rule id="100110" level="10">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:e|en|enc|enco|encod|encodedcommand)\s+["']?[A-Za-z0-9+/=]{8,}</field>
+
+    <description>PowerShell encoded command execution detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+
+    <group>powershell_encoded_command,command_obfuscation,</group>
+  </rule>
+
+
+  <!-- Download or remote-content retrieval -->
+  <rule id="100113" level="10">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:downloadstring|downloadfile|invoke-webrequest|\biwr\b|wget\b|curl\b|net\.webclient|system\.net\.webclient|start-bitstransfer|invoke-restmethod|\birm\b)</field>
+
+    <description>PowerShell download or remote-content retrieval detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1105</id>
+    </mitre>
+
+    <group>powershell_download,ingress_tool_transfer,</group>
+  </rule>
+
+
+  <!-- Suspicious parent -->
+  <rule id="100117" level="10">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:winword|excel|powerpnt|outlook|mshta|wscript|cscript|rundll32|regsvr32)\.exe$</field>
+
+    <description>PowerShell launched by suspicious parent $(win.eventdata.parentProcessName): $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+
+    <group>powershell_suspicious_parent,</group>
+  </rule>
+
+
+  <!-- Stealth options plus another suspicious indicator -->
+  <!-- Placed before 100112/100114 so -noprofile + IEX/Base64 fires here -->
+  <rule id="100116" level="9">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:noprofile|nop|noninteractive|noni)\b</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:invoke-expression|\biex\b|frombase64string)</field>
+
+    <description>PowerShell stealth options combined with suspicious behavior detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+
+    <group>powershell_stealth_execution,</group>
+  </rule>
+
+
+  <!-- Domain account discovery through PowerShell -->
+  <rule id="100121" level="9">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnet(?:\.exe)?\s+user\s+/domain\b|\bget-aduser\b|\[adsisearcher\]|directorysearcher)</field>
+
+    <description>PowerShell domain-account discovery detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1087.002</id>
+    </mitre>
+
+    <group>powershell_domain_account_discovery,account_discovery,</group>
+  </rule>
+
+
+  <!-- IEX-free code execution / module load (Import-Module, call operator, Add-Type, .Invoke) -->
+  <rule id="100120" level="9">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bimport-module\b|\bipmo\b|\badd-type\b|\binvoke-command\b|\bicm\b|(?:^|\s)\.\s+[.\\]|\.invoke\s*\()</field>
+
+    <description>PowerShell IEX-free execution or module load detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+
+    <group>powershell_alt_execution,dynamic_execution,</group>
+  </rule>
+
+
+  <!-- Invoke-Expression / IEX -->
+  <rule id="100112" level="9">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:invoke-expression|\biex\b)</field>
+
+    <description>PowerShell dynamic execution using Invoke-Expression detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+
+    <group>powershell_invoke_expression,dynamic_execution,</group>
+  </rule>
+
+
+  <!-- Domain, forest and domain-controller discovery through PowerShell -->
+  <rule id="100122" level="8">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnltest(?:\.exe)?\s+/(?:dsgetdc|dclist|domain_trusts|trusted_domains)\b|\bget-addomain(?:controller)?\b|\bget-adforest\b)</field>
+
+    <description>PowerShell domain or domain-controller discovery detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1018</id>
+      <id>T1482</id>
+    </mitre>
+
+    <group>powershell_domain_discovery,remote_system_discovery,</group>
+  </rule>
+
+
+  <!-- Registry modification through PowerShell or reg.exe -->
+  <rule id="100123" level="8">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bnew-itemproperty\b|\bset-itemproperty\b|\bremove-itemproperty\b|\breg(?:\.exe)?\s+(?:add|delete)\b)</field>
+
+    <description>PowerShell registry modification detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1112</id>
+    </mitre>
+
+    <group>powershell_registry_modification,registry_change,</group>
+  </rule>
+
+
+  <!-- Execution-policy bypass -->
+  <rule id="100111" level="8">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:executionpolicy|ep)\s+(?:bypass|unrestricted)\b</field>
+
+    <description>PowerShell execution-policy bypass detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+    </mitre>
+
+    <group>powershell_policy_bypass,</group>
+  </rule>
+
+
+  <!-- Base64 conversion -->
+  <rule id="100114" level="8">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:frombase64string|tobase64string)</field>
+
+    <description>PowerShell Base64 conversion activity detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+
+    <group>powershell_base64,command_obfuscation,</group>
+  </rule>
+
+
+  <!-- Hidden/minimized PowerShell -->
+  <rule id="100115" level="8">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:windowstyle|w)\s+(?:hidden|minimized)\b</field>
+
+    <description>PowerShell launched with a hidden or minimized window: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1564.003</id>
+    </mitre>
+
+    <group>powershell_hidden_window,hide_artifacts,</group>
+  </rule>
+
+
+  <!-- Common command-obfuscation patterns (informational, FP-prone) -->
+  <rule id="100119" level="6">
+    <if_sid>100100</if_sid>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:`.{0,3}`.{0,3}`|(?:\[char\]\s*\d+\s*(?:\+\s*)?){3,})</field>
+
+    <description>Potentially obfuscated PowerShell command detected: $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+
+    <group>powershell_obfuscation,command_obfuscation,</group>
+  </rule>
+
+</group>

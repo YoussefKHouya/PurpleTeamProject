@@ -1,35 +1,55 @@
 # PurpleTeamProject
 
-Private purple-team project for Wazuh PowerShell detection engineering and validation.
+Private purple-team project for Wazuh command and scripting interpreter detection engineering.
 
 ## Scope
 
-- Wazuh custom rules for suspicious PowerShell process execution
+- T1059.001 — PowerShell
+- T1059.003 — Windows Command Shell
+- T1059.004 — Unix Shell
 - MITRE ATT&CK mapping
-- Harmless purple-team test events and commands
-- Rule validation, false-positive review, and regression evidence
-- Versioned diffs for every rule modification
+- Live positive/negative validation
+- False-positive review and regression evidence
+- Versioned diffs for rule modifications
 
 ## Current status
 
-Initial review completed for `powershell_rules_v3.xml` supplied in chat.
+PowerShell phase active.
 
-The source XML has not yet been copied into this working tree. Add the actual `powershell_detection.xml` before modifying rules. No rule content is fabricated here.
+Completed:
 
-## Initial review findings
+- Imported deployed `powershell-detection.xml`
+- Validated XML and existing T01–T12 live test matrix
+- Reproduced missing domain-discovery and registry-modification coverage
+- Added rules 100121–100123 and 100138–100139
+- Validated new rules with live Event 4688 alerts
+- Ran negative controls
+- Verified cleanup and manager health
 
-- Rules detect post-process creation; they do not prevent execution.
-- T1059.001, T1105, T1027, and T1564.003 mappings are broadly applicable.
-- `svchost.exe` parent alone does not prove T1543.003 service creation.
-- Validate sibling-rule matching behavior with `/var/ossec/bin/wazuh-logtest` on the deployed Wazuh version.
-- Test Security 4688 fields against real agent events.
+Evidence:
+
+- `tests/results/powershell_validation_2026-07-19.md`
+
+Remaining before declaring T1059.001 complete:
+
+- Suspicious-parent scenarios
+- Service-parent scenario
+- Wider benign-administration false-positive sample
+- Final regression pass
 
 ## Workflow
 
-1. Preserve original XML.
-2. Create dated/versioned change.
-3. Validate XML syntax.
-4. Test raw events with `wazuh-logtest`.
-5. Verify generated alerts on the agent/manager.
-6. Record actual rule IDs, levels, MITRE IDs, and false positives.
-7. Commit only reviewed changes.
+1. Preserve deployed XML and manager-side backup.
+2. Execute one controlled test at a time.
+3. Capture actual Event 4688 and Wazuh alert evidence.
+4. Record rule ID, level, MITRE IDs, and cleanup status.
+5. Reproduce gaps before modifying rules.
+6. Validate XML and duplicate IDs locally.
+7. Deploy with backup and run `wazuh-analysisd -t`.
+8. Restart manager only after validation passes.
+9. Live-retest positive cases and negative controls.
+10. Commit reviewed rules and evidence.
+
+## Privacy
+
+Do not commit passwords, tokens, private keys, private-workstation identifiers, or private access-path details. Local access configuration belongs under ignored `.local/` only.
