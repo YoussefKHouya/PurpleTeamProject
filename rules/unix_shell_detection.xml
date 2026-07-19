@@ -27,7 +27,7 @@
 
   <rule id="100220" level="12">
     <if_sid>100201</if_sid>
-    <field name="command_line" type="pcre2">(?i)\b(?:curl|wget)\b.*(?:\|\s*(?:ba|da|z|k)?sh\b|(?:&amp;&amp;|;)\s*(?:ba|da|z|k)?sh\b)</field>
+    <field name="command_line" type="pcre2">(?i)\b(?:curl|wget)\b.*(?:\|\s*(?:busybox\s+)?(?:a|ba|da|z|k)?sh\b|(?:&amp;&amp;|;)\s*(?:busybox\s+)?(?:a|ba|da|z|k)?sh\b)</field>
     <description>Unix shell downloaded content and passed execution to a shell: $(command_line)</description>
     <mitre>
       <id>T1059.004</id>
@@ -38,7 +38,7 @@
 
   <rule id="100221" level="12">
     <if_sid>100201</if_sid>
-    <field name="command_line" type="pcre2">(?i)(?:/dev/(?:tcp|udp)/|(?:\bnc(?:at)?\b|\bnetcat\b).*(?:\s-e\s+|\s-c\s+).*(?:/bin/)?(?:ba|da|z|k)?sh\b|\bsocat\b.*\bEXEC:(?:/bin/)?(?:ba|da|z|k)?sh\b)</field>
+    <field name="command_line" type="pcre2">(?i)(?:/dev/(?:tcp|udp)/|(?:\bnc(?:at)?\b|\bnetcat\b).*(?:\s-e\s+|\s-c\s+).*(?:/bin/)?(?:a|ba|da|z|k)?sh\b|\bsocat\b.*\bEXEC:(?:/bin/)?(?:a|ba|da|z|k)?sh\b)</field>
     <description>Potential Unix reverse shell command: $(command_line)</description>
     <mitre>
       <id>T1059.004</id>
@@ -48,7 +48,7 @@
 
   <rule id="100222" level="11">
     <if_sid>100201</if_sid>
-    <field name="command_line" type="pcre2">(?i)\b(?:base64\s+(?:-d|--decode)|openssl\s+enc\b.*\s-d\b|xxd\s+-r)\b.*(?:\||&amp;&amp;|;)\s*(?:ba|da|z|k)?sh\b</field>
+    <field name="command_line" type="pcre2">(?i)\b(?:base64\s+(?:-d|--decode)|openssl\s+enc\b.*\s-d\b|xxd\s+-r)\b.*(?:\||&amp;&amp;|;)\s*(?:busybox\s+)?(?:a|ba|da|z|k)?sh\b</field>
     <description>Unix shell decoded content and passed execution to a shell: $(command_line)</description>
     <mitre>
       <id>T1059.004</id>
@@ -99,6 +99,17 @@
 
   <!-- ATOMIC FALLBACKS -->
 
+  <rule id="100210" level="5">
+    <if_sid>100201</if_sid>
+    <field name="exe" type="pcre2">(?i)/busybox$</field>
+    <field name="command_line" type="pcre2">(?i)^(?:busybox\s+)?(?:a|ba|da|z|k)?sh\b.*\s-(?:[a-z]*c|s)\b</field>
+    <description>BusyBox Unix shell applet executed: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+    </mitre>
+    <group>unix_shell_busybox_execution,</group>
+  </rule>
+
   <rule id="100209" level="6">
     <if_sid>100201</if_sid>
     <field name="command_line" type="pcre2">(?i)\b(?:nc|ncat|netcat|socat)\b</field>
@@ -131,7 +142,7 @@
 
   <rule id="100207" level="8">
     <if_sid>100201</if_sid>
-    <field name="command_line" type="pcre2">(?i)\b(?:ba|da|z|k)?sh\b\s+/tmp/[^\s]+</field>
+    <field name="command_line" type="pcre2">(?i)\b(?:busybox\s+)?(?:a|ba|da|z|k)?sh\b\s+/tmp/[^\s]+</field>
     <description>Unix shell executed script from temporary directory: $(command_line)</description>
     <mitre>
       <id>T1059.004</id>
@@ -171,8 +182,8 @@
 
   <rule id="100202" level="3">
     <if_sid>100201</if_sid>
-    <field name="exe" type="pcre2">(?i)/(?:ba|da|z|k)?sh$</field>
-    <field name="command_line" type="pcre2">(?i)\b(?:ba|da|z|k)?sh\b.*\s-(?:[a-z]*c|s)\b</field>
+    <field name="exe" type="pcre2">(?i)/(?:a|ba|da|z|k)?sh$</field>
+    <field name="command_line" type="pcre2">(?i)\b(?:a|ba|da|z|k)?sh\b.*\s-(?:[a-z]*c|s)\b</field>
     <description>Unix shell command interpreter executed: $(command_line)</description>
     <mitre>
       <id>T1059.004</id>

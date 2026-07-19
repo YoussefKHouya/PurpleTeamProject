@@ -49,6 +49,7 @@ Wazuh's audit decoder omitted hex-encoded shell payload arguments. A tested audi
 | 100207 | 8 | Shell execution from `/tmp` | T1059.004 |
 | 100208 | 9 | `/etc/shadow` or `/etc/gshadow` access | T1003.008 |
 | 100209 | 6 | Dual-use nc/ncat/netcat/socat execution | T1095 |
+| 100210 | 5 | BusyBox `sh`/`ash` command execution | T1059.004 |
 | 100220 | 12 | Download piped/chained to shell | T1059.004, T1105 |
 | 100221 | 12 | Reverse-shell command pattern | T1059.004 |
 | 100222 | 11 | Decode then execute through shell | T1059.004, T1140 |
@@ -83,6 +84,30 @@ Reverse-shell and network-utility rules were retested after tuning:
 Generic nc -z: 100209 level 6
 /dev/tcp reverse shell: 100221 level 12
 ```
+
+## BusyBox extension
+
+BusyBox v1.30.1 was present with `sh`, `ash`, `wget`, `nc`, `chmod`, `crond`, and `crontab` applets.
+
+Pre-fix proof showed the parent Bash process firing rule 100202 while the actual `/usr/bin/busybox` child event received no alert. Rule 100210 and BusyBox-aware chain patterns closed that gap.
+
+| Test | Behavior | Expected | Actual | Result |
+|---|---|---:|---:|---|
+| BB01 | `busybox sh -c` | 100210/L5 | 100210/L5 | PASS |
+| BB02 | `busybox ash -c` | 100210/L5 | 100210/L5 | PASS |
+| BB03 | BusyBox wget piped to BusyBox sh | 100220/L12 | 100220/L12 | PASS |
+| BB04 | BusyBox nc reverse-shell pattern | 100221/L12 | 100221/L12 | PASS |
+| BB05 | BusyBox sh execution from `/tmp` | 100207/L8 | 100207/L8 | PASS |
+
+BusyBox negative controls:
+
+| Test | Must not fire | Actual | Result |
+|---|---|---|---|
+| BBN1 `busybox echo` | 100210 | Baseline parent only | PASS |
+| BBN2 `busybox wget --help` | 100203/100220 | Baseline parent only | PASS |
+| BBN3 `busybox chmod 0644` | 100205 | Baseline parent only | PASS |
+
+Shell-family expressions now include `ash`, and download/decode/temp-execution chains accept optional `busybox` dispatch.
 
 ## Negative controls
 
@@ -125,4 +150,4 @@ SSH-driven tests create nested shell processes, so parent and child events can p
 
 ## Verdict
 
-Core Unix Shell T1059.004 telemetry and behavior rules are deployed and live-validated. Download-execute, reverse shell, decode-execute, history clearing, persistence, credential access, permission modification, temporary execution, and dual-use networking coverage all passed positive and negative controls.
+Core Unix Shell T1059.004 telemetry and behavior rules are deployed and live-validated. Download-execute, reverse shell, decode-execute, history clearing, persistence, credential access, permission modification, temporary execution, BusyBox/ash dispatch, and dual-use networking coverage all passed positive and negative controls.

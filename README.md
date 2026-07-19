@@ -28,8 +28,9 @@ Core T1059.004 phase deployed and live-validated:
 
 - Installed auditd execution telemetry
 - Added tested audit dispatcher for complete decoded command lines
-- Added rules 100200–100209 and 100220–100226
-- Ran 15 positive tests and 5 negative controls
+- Added rules 100200–100210 and 100220–100226
+- Ran 20 positive tests and 8 negative controls
+- Added live-validated BusyBox `sh`/`ash`, wget-to-shell, reverse-shell, and temporary-execution coverage
 - Tuned generic network-utility severity from level 10 to level 6
 - Verified manager, agent, auditd, parser, cleanup, and zero lost audit events
 
