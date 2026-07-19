@@ -1,0 +1,11 @@
+<ossec_config>
+  <localfile>
+    <log_format>audit</log_format>
+    <location>/var/log/audit/audit.log</location>
+  </localfile>
+
+  <localfile>
+    <log_format>json</log_format>
+    <location>/var/log/wazuh-audit-exec.json</location>
+  </localfile>
+</ossec_config>

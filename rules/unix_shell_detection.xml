@@ -1,0 +1,183 @@
+<!--
+  File: unix_shell_detection.xml
+  Purpose: Hierarchical Wazuh detections for Unix shell execution from normalized Linux auditd events
+  Rule range: 100200-100239
+  Data source: auditd EXECVE/EXECVEAT records tagged wazuh_shell_exec
+-->
+
+<group name="unix_shell,audit,">
+
+  <!-- RAW AUDIT BASE: suppress noisy raw exec telemetry while retaining a parent -->
+  <rule id="100200" level="0">
+    <if_sid>80700</if_sid>
+    <field name="audit.key" type="pcre2">^wazuh_shell_exec$</field>
+    <field name="audit.success" type="pcre2">^yes$</field>
+    <description>Normalized Unix execution telemetry source.</description>
+  </rule>
+
+  <!-- NORMALIZED JSON BASE -->
+  <rule id="100201" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="event_source" type="pcre2">^auditd_execve$</field>
+    <field name="success" type="pcre2">^yes$</field>
+    <description>Normalized Unix execution telemetry.</description>
+  </rule>
+
+  <!-- HIGH-CONFIDENCE COMBINATIONS -->
+
+  <rule id="100220" level="12">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:curl|wget)\b.*(?:\|\s*(?:ba|da|z|k)?sh\b|(?:&amp;&amp;|;)\s*(?:ba|da|z|k)?sh\b)</field>
+    <description>Unix shell downloaded content and passed execution to a shell: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+      <id>T1105</id>
+    </mitre>
+    <group>unix_shell_download_execute,</group>
+  </rule>
+
+  <rule id="100221" level="12">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)(?:/dev/(?:tcp|udp)/|(?:\bnc(?:at)?\b|\bnetcat\b).*(?:\s-e\s+|\s-c\s+).*(?:/bin/)?(?:ba|da|z|k)?sh\b|\bsocat\b.*\bEXEC:(?:/bin/)?(?:ba|da|z|k)?sh\b)</field>
+    <description>Potential Unix reverse shell command: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+    </mitre>
+    <group>unix_shell_reverse_shell,</group>
+  </rule>
+
+  <rule id="100222" level="11">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:base64\s+(?:-d|--decode)|openssl\s+enc\b.*\s-d\b|xxd\s+-r)\b.*(?:\||&amp;&amp;|;)\s*(?:ba|da|z|k)?sh\b</field>
+    <description>Unix shell decoded content and passed execution to a shell: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+      <id>T1140</id>
+    </mitre>
+    <group>unix_shell_decode_execute,</group>
+  </rule>
+
+  <rule id="100223" level="10">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:echo|printf|tee|sed)\b.*(?:\.bashrc|\.profile|/etc/profile|bash\.bashrc|\.zshrc)</field>
+    <description>Unix shell configuration persistence attempt: $(command_line)</description>
+    <mitre>
+      <id>T1546.004</id>
+    </mitre>
+    <group>unix_shell_profile_persistence,</group>
+  </rule>
+
+  <rule id="100224" level="10">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\bauthorized_keys\b</field>
+    <description>SSH authorized-keys modification attempt: $(command_line)</description>
+    <mitre>
+      <id>T1098.004</id>
+    </mitre>
+    <group>unix_shell_ssh_key_persistence,</group>
+  </rule>
+
+  <rule id="100225" level="10">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)(?:/etc/sudoers(?:\.d/)?|\bsudoers\b)</field>
+    <description>Sudoers modification attempt from Unix shell: $(command_line)</description>
+    <mitre>
+      <id>T1548.003</id>
+    </mitre>
+    <group>unix_shell_sudoers_modification,</group>
+  </rule>
+
+  <rule id="100226" level="9">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)(?:\bcrontab\b(?!\s+(?:-l|-r)\b)|\b(?:echo|printf|tee|sed)\b.*/etc/cron(?:tab|\.d/))</field>
+    <description>Cron persistence attempt from Unix shell: $(command_line)</description>
+    <mitre>
+      <id>T1053.003</id>
+    </mitre>
+    <group>unix_shell_cron_persistence,</group>
+  </rule>
+
+  <!-- ATOMIC FALLBACKS -->
+
+  <rule id="100209" level="6">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:nc|ncat|netcat|socat)\b</field>
+    <description>Dual-use Unix networking utility executed: $(command_line)</description>
+    <mitre>
+      <id>T1095</id>
+    </mitre>
+    <group>unix_shell_network_utility,</group>
+  </rule>
+
+  <rule id="100208" level="9">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:cat|cp|grep|awk|sed|head|tail)\b.*?/etc/(?:shadow|gshadow)\b</field>
+    <description>Linux credential file access from command line: $(command_line)</description>
+    <mitre>
+      <id>T1003.008</id>
+    </mitre>
+    <group>unix_shell_credential_access,</group>
+  </rule>
+
+  <rule id="100204" level="8">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)(?:\bhistory\s+-c\b|\bunset\s+HISTFILE\b|\brm\b.*\.(?:bash|zsh)_history\b|\btruncate\b.*\.(?:bash|zsh)_history\b)</field>
+    <description>Unix shell history clearing attempt: $(command_line)</description>
+    <mitre>
+      <id>T1070.003</id>
+    </mitre>
+    <group>unix_shell_history_clear,</group>
+  </rule>
+
+  <rule id="100207" level="8">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:ba|da|z|k)?sh\b\s+/tmp/[^\s]+</field>
+    <description>Unix shell executed script from temporary directory: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+    </mitre>
+    <group>unix_shell_temp_execution,</group>
+  </rule>
+
+  <rule id="100203" level="7">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:curl|wget)\b.*(?:https?|ftp)://</field>
+    <description>Remote content retrieval from Unix command line: $(command_line)</description>
+    <mitre>
+      <id>T1105</id>
+    </mitre>
+    <group>unix_shell_download,</group>
+  </rule>
+
+  <rule id="100205" level="7">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\bchmod\b.*(?:\+x|\b[0-7]*[1357][0-7]{2}\b)</field>
+    <description>Executable permission added from Unix command line: $(command_line)</description>
+    <mitre>
+      <id>T1222.002</id>
+    </mitre>
+    <group>unix_shell_permission_modification,</group>
+  </rule>
+
+  <rule id="100206" level="6">
+    <if_sid>100201</if_sid>
+    <field name="command_line" type="pcre2">(?i)\b(?:base64\s+(?:-d|--decode)|xxd\s+-r|openssl\s+enc\b.*\s-d\b)</field>
+    <description>Command-line content decoding utility executed: $(command_line)</description>
+    <mitre>
+      <id>T1140</id>
+    </mitre>
+    <group>unix_shell_decode,</group>
+  </rule>
+
+  <rule id="100202" level="3">
+    <if_sid>100201</if_sid>
+    <field name="exe" type="pcre2">(?i)/(?:ba|da|z|k)?sh$</field>
+    <field name="command_line" type="pcre2">(?i)\b(?:ba|da|z|k)?sh\b.*\s-(?:[a-z]*c|s)\b</field>
+    <description>Unix shell command interpreter executed: $(command_line)</description>
+    <mitre>
+      <id>T1059.004</id>
+    </mitre>
+    <group>unix_shell_execution,</group>
+  </rule>
+
+</group>

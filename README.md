@@ -14,41 +14,47 @@ Private purple-team project for Wazuh command and scripting interpreter detectio
 
 ## Current status
 
-PowerShell phase active.
+### PowerShell
 
-Completed:
-
-- Imported deployed `powershell-detection.xml`
-- Validated XML and existing T01–T12 live test matrix
-- Reproduced missing domain-discovery and registry-modification coverage
-- Added rules 100121–100123 and 100138–100139
-- Validated new rules with live Event 4688 alerts
-- Ran negative controls
-- Verified cleanup and manager health
+Core command behavior deployed and validated. Parent-process scenarios and wider benign-administration sampling remain.
 
 Evidence:
 
 - `tests/results/powershell_validation_2026-07-19.md`
 
-Remaining before declaring T1059.001 complete:
+### Unix Shell
 
-- Suspicious-parent scenarios
-- Service-parent scenario
-- Wider benign-administration false-positive sample
-- Final regression pass
+Core T1059.004 phase deployed and live-validated:
+
+- Installed auditd execution telemetry
+- Added tested audit dispatcher for complete decoded command lines
+- Added rules 100200–100209 and 100220–100226
+- Ran 15 positive tests and 5 negative controls
+- Tuned generic network-utility severity from level 10 to level 6
+- Verified manager, agent, auditd, parser, cleanup, and zero lost audit events
+
+Evidence and deployment details:
+
+- `tests/results/unix_shell_validation_2026-07-19.md`
+- `agents/linux/README.md`
+
+### Next phase
+
+- T1059.003 — Windows Command Shell/MS-DOS
 
 ## Workflow
 
-1. Preserve deployed XML and manager-side backup.
-2. Execute one controlled test at a time.
-3. Capture actual Event 4688 and Wazuh alert evidence.
-4. Record rule ID, level, MITRE IDs, and cleanup status.
-5. Reproduce gaps before modifying rules.
-6. Validate XML and duplicate IDs locally.
-7. Deploy with backup and run `wazuh-analysisd -t`.
-8. Restart manager only after validation passes.
-9. Live-retest positive cases and negative controls.
-10. Commit reviewed rules and evidence.
+1. Preserve deployed rules and create host-side backups.
+2. Verify required telemetry before authoring detections.
+3. Execute one controlled test at a time.
+4. Capture actual host events and Wazuh alerts.
+5. Record rule ID, level, MITRE IDs, and cleanup status.
+6. Reproduce gaps before modifying rules.
+7. Validate syntax and duplicate IDs locally.
+8. Deploy with backup and run Wazuh configuration tests.
+9. Restart services only after validation passes.
+10. Live-retest positive cases and negative controls.
+11. Commit reviewed rules, telemetry config, and evidence.
 
 ## Privacy
 

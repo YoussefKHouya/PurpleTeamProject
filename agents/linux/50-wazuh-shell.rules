@@ -1,0 +1,4 @@
+# Wazuh Unix-shell execution telemetry
+# Capture process execution by real users while excluding unset login UIDs.
+-a always,exit -F arch=b64 -S execve,execveat -F auid>=1000 -F auid!=4294967295 -k wazuh_shell_exec
+-a always,exit -F arch=b32 -S execve,execveat -F auid>=1000 -F auid!=4294967295 -k wazuh_shell_exec
