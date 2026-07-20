@@ -101,15 +101,27 @@ normalizer process active
 audit lost=0
 ```
 
-## Next phase
+## Windows Command Shell phase
 
-Deferred by user:
+T1059.003 preflight started. No command-shell tests have been executed yet.
+
+Sanitized runner source and instructions:
 
 ```text
-T1059.003 — Windows Command Shell / MS-DOS
+tests/windows_command_shell_runner.ps1
+tests/windows_command_shell_run_instructions.txt
 ```
 
-Do not start until user asks.
+Validated copies were placed on the access workstation Desktop:
+
+```text
+Invoke-WazuhMSDOSTests.ps1
+RUN-MSDOS-TESTS.txt
+```
+
+The runner uses interactive credentials, targets the approved Wazuh Windows agent through WinRM, pauses before every case, writes unique UTC markers, creates a Desktop transcript, and performs cleanup verification.
+
+Next step: user runs the script from an elevated PowerShell window. Execute one case at a time and stop after each marker so raw Event 4688 and Wazuh behavior can be captured before rules are authored.
 
 ## Collaboration terms
 

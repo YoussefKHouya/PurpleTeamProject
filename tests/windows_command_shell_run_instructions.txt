@@ -1,0 +1,19 @@
+Open PowerShell as Administrator on the access workstation, then run:
+
+cd ([Environment]::GetFolderPath('Desktop'))
+Set-ExecutionPolicy -Scope Process Bypass -Force
+.\Invoke-WazuhMSDOSTests.ps1
+
+When prompted:
+1. Enter approved Wazuh Windows agent address.
+2. Enter approved domain test user as DOMAIN\user.
+3. Enter credential in secure prompt.
+4. Run one case at a time.
+5. Stop after each marker so Wazuh evidence can be checked.
+
+Controls inside runner:
+- ENTER = run current case
+- S = skip current case
+- Q = stop and run cleanup
+
+Runner creates transcript on Desktop and performs final cleanup verification.
