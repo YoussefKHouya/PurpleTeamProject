@@ -103,7 +103,15 @@ audit lost=0
 
 ## Windows Command Shell phase
 
-T1059.003 preflight started. No command-shell tests have been executed yet.
+T1059.003 preflight is underway. A prior draft was partially live-tested, but the current fixed candidate has only static validation and was not deployed by this change.
+
+Current rule source:
+
+```text
+rules/cmd_detection.xml
+```
+
+It contains 23 rules in collision-free range 100300–100344. Domain/DC discovery, single-command discovery, credential mappings, parent mappings, and certutil encode/decode handling were corrected.
 
 Sanitized runner source and instructions:
 

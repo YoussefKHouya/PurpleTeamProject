@@ -7,7 +7,7 @@
 - Imported deployed `powershell-detection.xml` into version control.
 - Live-validated PowerShell tests T01–T12 against Windows Security Event ID 4688.
 - Added rules 100121–100123 and 100138–100139 for domain discovery, account discovery, registry modification, and Run/RunOnce persistence.
-- Validated XML structure, duplicate IDs, Wazuh manager syntax, live alerts, negative controls, and cleanup.
+- Validated XML structure, duplicate IDs, Wazuh manager syntax, live alerts, false-positive tests, and cleanup.
 - Added evidence report `tests/results/powershell_validation_2026-07-19.md`.
 
 ### Unix Shell
@@ -17,8 +17,19 @@
 - Added agent-side audit, Wazuh localfile, plugin, and logrotate configuration under `agents/linux/`.
 - Added and deployed `unix_shell_detection.xml` with rules 100200–100210 and 100220–100226.
 - Covered shell execution, remote retrieval, download-execute, reverse shells, decode-execute, history clearing, shell-profile persistence, SSH keys, sudoers, cron, permission changes, temporary execution, credential-file access, dual-use network tools, and BusyBox/ash dispatch.
-- Live-validated 20 positive tests and 8 negative controls.
+- Live-validated 20 positive tests and 8 false-positive tests.
 - Added rule 100210 for BusyBox `sh`/`ash`; extended download-execute, decode-execute, reverse-shell, and temporary-execution patterns for BusyBox applets.
 - Reduced generic network-utility rule 100209 from level 10 to level 6 after a benign netcat check proved the original severity excessive.
 - Verified zero lost audit events, cleanup, service health, manager syntax, and deployed file ownership.
 - Added evidence report `tests/results/unix_shell_validation_2026-07-19.md`.
+
+### Windows Command Shell
+
+- Added full `rules/cmd_detection.xml` with 23 hierarchical rules in collision-free range 100300–100344.
+- Expanded domain-account, domain-group, domain-view, DC discovery, and direct SYSVOL/NETLOGON/administrative-share targeting coverage.
+- Fixed single-command discovery matching for `whoami`, `hostname`, `ipconfig`, `systeminfo`, session, and network utilities.
+- Split LSASS, SAM, and LSA Secrets detections for precise T1003 sub-technique mapping.
+- Split PowerShell-parent execution from RunAs/UAC-parent execution.
+- Split certutil encode and decode detections with separate severity and ATT&CK mappings.
+- Validated XML structure, 23 unique IDs, internal references, 26 regexes, targeted escaped-command samples, and zero collisions with PowerShell/Unix rule files.
+- This change versions the candidate only; manager deployment and final live regression remain pending.

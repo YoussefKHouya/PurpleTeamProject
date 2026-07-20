@@ -1,0 +1,338 @@
+<!--
+  File: cmd_detection.xml
+  Purpose: Hierarchical Wazuh detections for suspicious Windows Command Shell activity
+  Data source: Windows Security Event ID 4688
+
+  Requirements:
+    - Audit Process Creation = Success
+    - Include command line in process creation events = Enabled
+    - Parent Wazuh rule in this lab = 67027
+
+  Design:
+    1. Rule 100300 silently identifies cmd.exe process creation.
+    2. Child rules are ordered from the most specific/highest severity to
+       lower-severity atomic fallbacks.
+    3. Multiple <field> entries in one rule are AND conditions.
+    4. These detections inspect commands interpreted by cmd.exe. Separate
+       process-specific rules should still monitor direct execution of tools.
+-->
+
+<group name="windows,cmd,cmd_execution,">
+
+  <!-- BASE RULE -->
+  <rule id="100300" level="0" noalert="1">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName"
+           type="pcre2">(?i)\\cmd\.exe$</field>
+    <description>Windows Command Shell process creation base rule</description>
+  </rule>
+
+
+  <!-- HIGH-RISK COMBINATION RULES -->
+
+  <!-- CMD downloads content and immediately executes it -->
+  <rule id="100330" level="13">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\b(?:certutil(?:\.exe)?\s+[^\r\n]*(?:-urlcache|-verifyctl)|bitsadmin(?:\.exe)?\s+[^\r\n]*/transfer|curl(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://|wget(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://)\b</field>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:&amp;&amp;|&amp;|\|)\s*(?:start\s+)?(?:["']?[^\s"']+\.(?:exe|dll|bat|cmd|com|msi|ps1)["']?|rundll32|regsvr32|msiexec|powershell|pwsh|wscript|cscript)\b</field>
+    <description>CMD downloaded remote content and chained its execution: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1105</id>
+    </mitre>
+    <group>cmd_download_and_execute,high_confidence,critical,</group>
+  </rule>
+
+  <!-- CMD launches encoded/obfuscated PowerShell -->
+  <rule id="100331" level="12">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\b(?:powershell|pwsh)(?:\.exe)?\b</field>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:^|\s)-(?:e|en|enc|enco|encod|encodedcommand)\s+["']?[A-Za-z0-9+/=]{8,}</field>
+    <description>CMD launched PowerShell with an encoded command: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1059.001</id>
+      <id>T1027</id>
+    </mitre>
+    <group>cmd_encoded_powershell,command_obfuscation,high_confidence,</group>
+  </rule>
+
+  <!-- LSASS memory credential access through CMD -->
+  <rule id="100332" level="12">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bcomsvcs\.dll\b[^\r\n]*\bminidump\b|\bprocdump(?:64)?(?:\.exe)?\b[^\r\n]*(?:-ma\s+)?lsass|\bmimikatz(?:\.exe)?\b|sekurlsa::)</field>
+    <description>CMD LSASS-memory credential-access activity detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1003.001</id>
+    </mitre>
+    <group>cmd_credential_access,lsass_memory,high_confidence,</group>
+  </rule>
+
+  <!-- SAM/SYSTEM hive credential access through CMD -->
+  <rule id="100341" level="12">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\breg(?:\.exe)?\s+save\s+HKLM\\(?:SAM|SYSTEM)\b|lsadump::sam\b)</field>
+    <description>CMD SAM or SYSTEM hive credential-access activity detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1003.002</id>
+    </mitre>
+    <group>cmd_credential_access,sam_dump,high_confidence,</group>
+  </rule>
+
+  <!-- LSA Secrets credential access through CMD -->
+  <rule id="100342" level="12">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\breg(?:\.exe)?\s+save\s+HKLM\\SECURITY\b|lsadump::secrets\b)</field>
+    <description>CMD SECURITY hive or LSA Secrets credential-access activity detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1003.004</id>
+    </mitre>
+    <group>cmd_credential_access,lsa_secrets,high_confidence,</group>
+  </rule>
+
+  <!-- Disable or weaken Windows security controls -->
+  <rule id="100333" level="12">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bsc(?:\.exe)?\s+(?:stop|delete|config)\s+(?:WinDefend|WdNisSvc|Sense|EventLog|Sysmon(?:64)?)\b|\bnet(?:\.exe)?\s+stop\s+(?:WinDefend|WdNisSvc|Sense|EventLog)\b|\bwevtutil(?:\.exe)?\s+cl\s+\S+|\bauditpol(?:\.exe)?\s+/set\b[^\r\n]*/success:disable)</field>
+    <description>CMD attempted to disable security controls or clear audit evidence: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1562.001</id>
+      <id>T1070.001</id>
+    </mitre>
+    <group>cmd_defense_evasion,impair_defenses,clear_logs,high_confidence,</group>
+  </rule>
+
+  <!-- Registry Run/RunOnce persistence -->
+  <rule id="100334" level="11">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\breg(?:\.exe)?\s+add\b</field>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\\CurrentVersion\\Run(?:Once)?\b</field>
+    <description>CMD modified a Registry Run or RunOnce persistence location: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1112</id>
+      <id>T1547.001</id>
+    </mitre>
+    <group>cmd_registry_persistence,registry_run_keys,high_confidence,</group>
+  </rule>
+
+  <!-- Scheduled task creation -->
+  <rule id="100335" level="11">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\bschtasks(?:\.exe)?\s+/create\b</field>
+    <description>CMD created a scheduled task: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1053.005</id>
+    </mitre>
+    <group>cmd_scheduled_task,persistence,high_confidence,</group>
+  </rule>
+
+  <!-- Service creation or binary-path modification -->
+  <rule id="100336" level="11">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\bsc(?:\.exe)?\s+(?:create\s+\S+[^\r\n]*binpath\s*=|config\s+\S+[^\r\n]*binpath\s*=)</field>
+    <description>CMD created a service or modified its binary path: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1543.003</id>
+    </mitre>
+    <group>cmd_service_persistence,windows_service,high_confidence,</group>
+  </rule>
+
+  <!-- Remote execution via common administrative tools -->
+  <rule id="100337" level="11">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\bwmic(?:\.exe)?\s+/node\s*:|\bpsexec(?:64)?(?:\.exe)?\s+\\\\|\bwinrs(?:\.exe)?\s+(?:-[ruh]:|/remote:)|\bsc(?:\.exe)?\s+\\\\[^\s]+\s+(?:create|start)\b)</field>
+    <description>CMD remote command or service execution detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1021</id>
+    </mitre>
+    <group>cmd_remote_execution,lateral_movement,high_confidence,</group>
+  </rule>
+
+  <!-- Suspicious parent launches CMD -->
+  <rule id="100338" level="10">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:winword|excel|powerpnt|outlook|mshta|wscript|cscript|rundll32|regsvr32)\.exe$</field>
+    <description>CMD launched by suspicious parent $(win.eventdata.parentProcessName): $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+    </mitre>
+    <group>cmd_suspicious_parent,high_confidence,</group>
+  </rule>
+
+  <!-- CMD launched through PowerShell -->
+  <rule id="100339" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:powershell|pwsh)\.exe$</field>
+    <description>CMD launched through PowerShell: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1059.003</id>
+    </mitre>
+    <group>cmd_from_powershell,shell_chaining,suspicious_parent,</group>
+  </rule>
+
+  <!-- CMD launched through RunAs or UAC consent -->
+  <rule id="100343" level="7">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:runas|consent)\.exe$</field>
+    <description>CMD launched through RunAs or UAC consent: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1548.002</id>
+    </mitre>
+    <group>cmd_elevated_execution,uac,suspicious_parent,</group>
+  </rule>
+
+  <!-- certutil decode/decodehex staging -->
+  <rule id="100340" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\bcertutil(?:\.exe)?\b[^\r\n]*\s-(?:decode|decodehex)\b</field>
+    <description>CMD certutil decoding activity detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1140</id>
+    </mitre>
+    <group>cmd_certutil_decode,deobfuscate_decode,</group>
+  </rule>
+
+  <!-- certutil encode/encodehex staging -->
+  <rule id="100344" level="7">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\bcertutil(?:\.exe)?\b[^\r\n]*\s-(?:encode|encodehex)\b</field>
+    <description>CMD certutil encoding activity detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1027</id>
+    </mitre>
+    <group>cmd_certutil_encode,obfuscated_files,</group>
+  </rule>
+
+
+  <!-- ATOMIC/FALLBACK DETECTIONS -->
+
+  <!-- Remote-content retrieval -->
+  <rule id="100310" level="10">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\b(?:certutil(?:\.exe)?\s+[^\r\n]*(?:-urlcache|-verifyctl)|bitsadmin(?:\.exe)?\s+[^\r\n]*/transfer|curl(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://|wget(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://)\b</field>
+    <description>CMD remote-content retrieval detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1105</id>
+    </mitre>
+    <group>cmd_download,ingress_tool_transfer,</group>
+  </rule>
+
+  <!-- Local/domain administrator and group discovery -->
+  <rule id="100311" level="9">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\bnet(?:1|\.exe)?\s+(?:user(?:\s+\S+)?\s+/domain|group\s+.+?\s+/domain|localgroup\s+(?:\\?["']?administrators\\?["']?))\b</field>
+    <description>CMD privileged account or group discovery detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1087.002</id>
+      <id>T1069.001</id>
+      <id>T1069.002</id>
+    </mitre>
+    <group>cmd_account_discovery,permission_group_discovery,</group>
+  </rule>
+
+  <!-- Domain trust and domain-controller discovery -->
+  <rule id="100312" level="9">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\b(?:nltest(?:\.exe)?\s+/(?:dsgetdc|dclist|domain_trusts|trusted_domains)|dsquery(?:\.exe)?\s+(?:server|computer)|netdom(?:\.exe)?\s+query\s+(?:dc|trust))\b|\bnet(?:1|\.exe)?\s+view\s+/domain(?::\S+)?\b|\b(?:dir|type|pushd|net(?:1|\.exe)?\s+use)\s+\\\\\\\\[^\s\\]+\\\\(?:SYSVOL|NETLOGON|IPC\$|ADMIN\$)\b)</field>
+    <description>CMD domain, trust, or domain-controller discovery detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1018</id>
+      <id>T1482</id>
+    </mitre>
+    <group>cmd_domain_discovery,remote_system_discovery,</group>
+  </rule>
+
+  <!-- Network and system discovery chain -->
+  <rule id="100313" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\b(?:whoami|hostname|ipconfig|systeminfo|arp|route|netstat)(?:\.exe)?\b[^\r\n]*(?:&amp;&amp;|&amp;|\|)[^\r\n]*\b(?:whoami|hostname|ipconfig|systeminfo|arp|route|netstat)(?:\.exe)?\b</field>
+    <description>CMD chained multiple host or network discovery commands: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1033</id>
+      <id>T1016</id>
+      <id>T1082</id>
+    </mitre>
+    <group>cmd_discovery_chain,system_discovery,network_discovery,</group>
+  </rule>
+
+  <!-- Registry modification -->
+  <rule id="100314" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\breg(?:\.exe)?\s+(?:add|delete)\b</field>
+    <description>CMD registry modification detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1112</id>
+    </mitre>
+    <group>cmd_registry_modification,registry_change,</group>
+  </rule>
+
+  <!-- File or directory permission modification -->
+  <rule id="100315" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)\b(?:icacls|takeown)(?:\.exe)?\b[^\r\n]*(?:/grant|/deny|/remove|/setowner|/f)\b</field>
+    <description>CMD file ownership or permission modification detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1222.001</id>
+    </mitre>
+    <group>cmd_file_permissions,file_and_directory_permissions_modification,</group>
+  </rule>
+
+  <!-- Basic discovery: intentionally lower severity because of false positives -->
+  <rule id="100316" level="5">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)(?:\b(?:whoami|hostname|ipconfig|systeminfo|qwinsta|netstat|arp)(?:\.exe)?\b|\bquery\s+user\b)</field>
+    <description>CMD host, user, session, or network discovery command detected: $(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1033</id>
+      <id>T1016</id>
+      <id>T1082</id>
+    </mitre>
+    <group>cmd_basic_discovery,low_confidence,</group>
+  </rule>
+
+</group>
