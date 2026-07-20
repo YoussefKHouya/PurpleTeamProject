@@ -35,4 +35,5 @@
 - Tightened rule 100311 for quoted and unquoted domain-group names and corrected its description.
 - Reordered certutil decode/encode rules ahead of parent-only PowerShell and RunAs/UAC rules so command-specific detections win.
 - Documented the Event 4688 limitation: direct tools launched from an already-open CMD require process-specific rules outside the cmd.exe hierarchy.
+- Replaced the interactive malicious-command bench script with `tests/cmd_malicious_commands.txt`: 32 independent copy/paste commands, 5 false-positive tests, and cleanup commands.
 - This change versions the candidate only; manager deployment and final live regression remain pending.

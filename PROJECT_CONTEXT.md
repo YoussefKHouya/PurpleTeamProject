@@ -120,6 +120,14 @@ tests/windows_command_shell_runner.ps1
 tests/windows_command_shell_run_instructions.txt
 ```
 
+Plain command-by-command copy/paste catalog:
+
+```text
+tests/cmd_malicious_commands.txt
+```
+
+The catalog wraps each case in a new `cmd.exe /d /c` process so Event 4688 records the tested command on the cmd.exe event. It contains 32 bounded test commands, 5 false-positive tests, and explicit cleanup commands.
+
 Validated copies were placed on the access workstation Desktop:
 
 ```text

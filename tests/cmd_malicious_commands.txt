@@ -1,0 +1,211 @@
+WAZUH WINDOWS COMMAND SHELL TEST COMMANDS
+=========================================
+
+Run from an elevated CMD.exe window, not PowerShell.
+Copy and execute ONE command at a time. Stop after each command and check its WAZUH_CMD_* marker in Event 4688 and Wazuh.
+
+Every test starts a new cmd.exe with the complete tested command in its Event 4688 command line.
+Replace these values before testing domain/DC cases:
+
+  DOMAIN_NAME_HERE  Example: simulation.local
+  DC_HOST_HERE      Approved domain-controller hostname or address
+
+Loopback downloads use 127.0.0.1:9 and should fail safely. Dangerous credential, defense-evasion, and remote-service cases use ECHO and do not perform the displayed action.
+
+
+M01 - Baseline CMD
+------------------
+cmd.exe /d /c "echo WAZUH_CMD_M01"
+
+
+M02 - Single user discovery
+---------------------------
+cmd.exe /d /c "whoami.exe /all >nul 2>&1 & echo WAZUH_CMD_M02"
+
+
+M03 - Chained host and network discovery
+----------------------------------------
+cmd.exe /d /c "whoami.exe >nul 2>&1 & hostname.exe >nul 2>&1 & ipconfig.exe /all >nul 2>&1 & netstat.exe -ano >nul 2>&1 & echo WAZUH_CMD_M03"
+
+
+M04 - Domain account enumeration
+--------------------------------
+cmd.exe /d /c "net.exe user /domain >nul 2>&1 & echo WAZUH_CMD_M04"
+
+
+M05 - Specific domain account enumeration
+-----------------------------------------
+cmd.exe /d /c "net.exe user TEST_USER_NAME /domain >nul 2>&1 & echo WAZUH_CMD_M05"
+
+
+M06 - Domain Admins group enumeration
+-------------------------------------
+cmd.exe /d /c "net.exe group ^"Domain Admins^" /domain >nul 2>&1 & echo WAZUH_CMD_M06"
+
+
+M07 - Arbitrary quoted domain-group enumeration
+-----------------------------------------------
+cmd.exe /d /c "net.exe group ^"Enterprise Admins^" /domain >nul 2>&1 & echo WAZUH_CMD_M07"
+
+
+M08 - Domain-controller locator
+-------------------------------
+cmd.exe /d /c "nltest.exe /dsgetdc:DOMAIN_NAME_HERE >nul 2>&1 & echo WAZUH_CMD_M08"
+
+
+M09 - Domain-controller list
+----------------------------
+cmd.exe /d /c "nltest.exe /dclist:DOMAIN_NAME_HERE >nul 2>&1 & echo WAZUH_CMD_M09"
+
+
+M10 - Domain-trust discovery
+----------------------------
+cmd.exe /d /c "nltest.exe /domain_trusts >nul 2>&1 & echo WAZUH_CMD_M10"
+
+
+M11 - Domain view discovery
+---------------------------
+cmd.exe /d /c "net.exe view /domain:DOMAIN_NAME_HERE >nul 2>&1 & echo WAZUH_CMD_M11"
+
+
+M12 - Explicit DC SYSVOL access
+-------------------------------
+cmd.exe /d /c "dir \\DC_HOST_HERE\SYSVOL >nul 2>&1 & echo WAZUH_CMD_M12"
+
+
+M13 - Explicit DC NETLOGON access
+--------------------------------
+cmd.exe /d /c "dir \\DC_HOST_HERE\NETLOGON >nul 2>&1 & echo WAZUH_CMD_M13"
+
+
+M14 - Explicit DC IPC share access
+----------------------------------
+cmd.exe /d /c "net.exe use \\DC_HOST_HERE\IPC$ >nul 2>&1 & echo WAZUH_CMD_M14"
+
+
+M15 - Curl loopback retrieval
+-----------------------------
+cmd.exe /d /c "curl.exe http://127.0.0.1:9/WAZUH_CMD_M15.bin -o %TEMP%\WAZUH_CMD_M15.bin >nul 2>&1 & del /q %TEMP%\WAZUH_CMD_M15.bin 2>nul & echo WAZUH_CMD_M15"
+
+
+M16 - Certutil loopback URL retrieval
+-------------------------------------
+cmd.exe /d /c "certutil.exe -urlcache -split -f http://127.0.0.1:9/WAZUH_CMD_M16.bin %TEMP%\WAZUH_CMD_M16.bin >nul 2>&1 & del /q %TEMP%\WAZUH_CMD_M16.bin 2>nul & echo WAZUH_CMD_M16"
+
+
+M17 - Download then execute chain syntax
+----------------------------------------
+cmd.exe /d /c "curl.exe http://127.0.0.1:9/WAZUH_CMD_M17.cmd -o %TEMP%\WAZUH_CMD_M17.cmd >nul 2>&1 & call %TEMP%\WAZUH_CMD_M17.cmd & del /q %TEMP%\WAZUH_CMD_M17.cmd 2>nul & echo WAZUH_CMD_M17"
+
+
+M18 - Encoded PowerShell launched by CMD
+---------------------------------------
+cmd.exe /d /c "powershell.exe -NoProfile -NonInteractive -EncodedCommand VwByAGkAdABlAC0ATwB1AHQAcAB1AHQAIAAnAFcAQQBaAFUASABfAEMATQBEAF8ARQBOAEMATwBEAEUARABfAFAAQQBZAEwATwBBAEQAJwA= >nul 2>&1 & echo WAZUH_CMD_M18"
+
+
+M19 - Registry Run-key persistence with cleanup
+-----------------------------------------------
+cmd.exe /d /c "reg.exe add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v PurpleTeam_WazuhCmdTest /t REG_SZ /d ^"cmd.exe /c echo WAZUH_CMD_M19^" /f >nul 2>&1 & reg.exe delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v PurpleTeam_WazuhCmdTest /f >nul 2>&1 & echo WAZUH_CMD_M19"
+
+
+M20 - Generic registry modification with cleanup
+------------------------------------------------
+cmd.exe /d /c "reg.exe add HKCU\Software\PurpleTeam\WazuhCmdTest /v Marker /t REG_SZ /d WAZUH_CMD_M20 /f >nul 2>&1 & reg.exe delete HKCU\Software\PurpleTeam\WazuhCmdTest /f >nul 2>&1 & echo WAZUH_CMD_M20"
+
+
+M21 - Scheduled-task creation with cleanup
+-----------------------------------------
+cmd.exe /d /c "schtasks.exe /create /tn PurpleTeam_WazuhCmdTest /sc ONCE /st 23:59 /tr ^"cmd.exe /c exit^" /f >nul 2>&1 & schtasks.exe /delete /tn PurpleTeam_WazuhCmdTest /f >nul 2>&1 & echo WAZUH_CMD_M21"
+
+
+M22 - Service creation attempt with cleanup
+------------------------------------------
+cmd.exe /d /c "sc.exe create PurpleTeam_WazuhCmdTest binPath= ^"cmd.exe /c exit^" start= demand >nul 2>&1 & sc.exe delete PurpleTeam_WazuhCmdTest >nul 2>&1 & echo WAZUH_CMD_M22"
+
+
+M23 - File-permission modification with cleanup
+-----------------------------------------------
+cmd.exe /d /c "echo WAZUH_CMD_M23 > %TEMP%\WAZUH_CMD_M23.txt & icacls.exe %TEMP%\WAZUH_CMD_M23.txt /grant %USERNAME%:R >nul 2>&1 & del /q %TEMP%\WAZUH_CMD_M23.txt & echo WAZUH_CMD_M23"
+
+
+M24 - Environment-variable command indirection
+----------------------------------------------
+cmd.exe /d /v:on /c "set WAZUH_CMD=whoami.exe & call !WAZUH_CMD! >nul 2>&1 & echo WAZUH_CMD_M24"
+
+
+M25 - Temporary batch-file execution with cleanup
+-------------------------------------------------
+cmd.exe /d /c "echo @echo WAZUH_CMD_M25 > %TEMP%\WAZUH_CMD_M25.cmd & call %TEMP%\WAZUH_CMD_M25.cmd & del /q %TEMP%\WAZUH_CMD_M25.cmd"
+
+
+M26 - Certutil local encoding with cleanup
+-----------------------------------------
+cmd.exe /d /c "echo WAZUH_CMD_M26 > %TEMP%\WAZUH_CMD_M26-in.txt & certutil.exe -encode %TEMP%\WAZUH_CMD_M26-in.txt %TEMP%\WAZUH_CMD_M26-enc.txt >nul 2>&1 & del /q %TEMP%\WAZUH_CMD_M26-*.txt & echo WAZUH_CMD_M26"
+
+
+M27 - Certutil local decoding with cleanup
+-----------------------------------------
+cmd.exe /d /c "echo V0FaVUhfQ01EX00yNw== > %TEMP%\WAZUH_CMD_M27-enc.txt & certutil.exe -decode %TEMP%\WAZUH_CMD_M27-enc.txt %TEMP%\WAZUH_CMD_M27-out.txt >nul 2>&1 & del /q %TEMP%\WAZUH_CMD_M27-*.txt & echo WAZUH_CMD_M27"
+
+
+M28 - Credential-hive dump syntax only; no dump occurs
+------------------------------------------------------
+cmd.exe /d /c "echo reg.exe save HKLM\SAM %TEMP%\sam.save ^& reg.exe save HKLM\SYSTEM %TEMP%\system.save & echo WAZUH_CMD_M28"
+
+
+M29 - LSASS dump syntax only; no dump occurs
+--------------------------------------------
+cmd.exe /d /c "echo rundll32.exe C:\Windows\System32\comsvcs.dll MiniDump 999 %TEMP%\lsass.dmp full & echo WAZUH_CMD_M29"
+
+
+M30 - Security-control disable syntax only; no service change occurs
+--------------------------------------------------------------------
+cmd.exe /d /c "echo sc.exe stop WinDefend ^& sc.exe config WinDefend start= disabled & echo WAZUH_CMD_M30"
+
+
+M31 - Security-log clear syntax only; no log is cleared
+-------------------------------------------------------
+cmd.exe /d /c "echo wevtutil.exe cl Security & echo WAZUH_CMD_M31"
+
+
+M32 - Remote-service execution syntax only; no service is created
+-----------------------------------------------------------------
+cmd.exe /d /c "echo sc.exe \\DC_HOST_HERE create PurpleTeam binPath= cmd.exe & echo WAZUH_CMD_M32"
+
+
+FALSE-POSITIVE TESTS
+====================
+
+FP01 - Registry read only
+-------------------------
+cmd.exe /d /c "reg.exe query HKCU\Software >nul 2>&1 & echo WAZUH_CMD_FP01"
+
+
+FP02 - Scheduled-task query only
+--------------------------------
+cmd.exe /d /c "schtasks.exe /query /fo LIST >nul 2>&1 & echo WAZUH_CMD_FP02"
+
+
+FP03 - Local account listing only
+---------------------------------
+cmd.exe /d /c "net.exe user >nul 2>&1 & echo WAZUH_CMD_FP03"
+
+
+FP04 - Curl version only
+------------------------
+cmd.exe /d /c "curl.exe --version >nul 2>&1 & echo WAZUH_CMD_FP04"
+
+
+FP05 - Normal service query
+---------------------------
+cmd.exe /d /c "sc.exe query WazuhSvc >nul 2>&1 & echo WAZUH_CMD_FP05"
+
+
+EMERGENCY CLEANUP
+=================
+
+reg.exe delete HKCU\Software\PurpleTeam\WazuhCmdTest /f
+reg.exe delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v PurpleTeam_WazuhCmdTest /f
+schtasks.exe /delete /tn PurpleTeam_WazuhCmdTest /f
+sc.exe delete PurpleTeam_WazuhCmdTest
+del /q %TEMP%\WAZUH_CMD_M* 2>nul
