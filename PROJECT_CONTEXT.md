@@ -137,7 +137,24 @@ RUN-MSDOS-TESTS.txt
 
 The runner uses interactive credentials, targets the approved Wazuh Windows agent through WinRM, pauses before every case, writes unique UTC markers, creates a Desktop transcript, and performs cleanup verification.
 
-Next step: user runs the script from an elevated PowerShell window. Execute one case at a time and stop after each marker so raw Event 4688 and Wazuh behavior can be captured before rules are authored.
+PowerShell, Windows Command Shell, and Unix Shell Execution phases are treated as complete for roadmap progression. Versioned rule files, runners, command catalog, and existing evidence remain in the repository. Any future regression work should be explicit and must not block the Kerberoasting phase by default.
+
+## Next phase: Kerberoasting
+
+Next ATT&CK technique is T1558.003 Kerberoasting. Lab already has two SPN accounts; account names are not recorded here.
+
+Required DC telemetry:
+
+```text
+4769 — A Kerberos service ticket was requested
+Audit subcategory: Kerberos Service Ticket Operations
+Success: enabled
+Failure: enabled
+```
+
+Useful supporting events are 4768, 4770, 4771, 4772, and 4773. Event 4769 is generated on the domain controller issuing the TGS, not on Kali or the Windows workstation. Before any Kerberoasting execution, verify that the DC Security channel reaches Wazuh through a DC agent or Windows Event Forwarding. No Kerberoasting audit-policy, DC, manager-rule, or attack changes have been made yet.
+
+Wazuh manager SSH access was live-verified through the existing Pi → Tailscale → MINE → Wazuh VM route; `wazuh-manager` was active. No private route details or credentials are stored in version control.
 
 ## Collaboration terms
 
