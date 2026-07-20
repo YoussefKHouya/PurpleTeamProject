@@ -32,4 +32,7 @@
 - Split PowerShell-parent execution from RunAs/UAC-parent execution.
 - Split certutil encode and decode detections with separate severity and ATT&CK mappings.
 - Validated XML structure, 23 unique IDs, internal references, 26 regexes, targeted escaped-command samples, and zero collisions with PowerShell/Unix rule files.
+- Tightened rule 100311 for quoted and unquoted domain-group names and corrected its description.
+- Reordered certutil decode/encode rules ahead of parent-only PowerShell and RunAs/UAC rules so command-specific detections win.
+- Documented the Event 4688 limitation: direct tools launched from an already-open CMD require process-specific rules outside the cmd.exe hierarchy.
 - This change versions the candidate only; manager deployment and final live regression remain pending.

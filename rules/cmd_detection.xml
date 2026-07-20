@@ -13,8 +13,12 @@
     2. Child rules are ordered from the most specific/highest severity to
        lower-severity atomic fallbacks.
     3. Multiple <field> entries in one rule are AND conditions.
-    4. These detections inspect commands interpreted by cmd.exe. Separate
-       process-specific rules should still monitor direct execution of tools.
+    4. These detections inspect the command line on newly created cmd.exe events.
+       Commands supplied through cmd.exe /c are visible to this hierarchy.
+    5. Commands typed into an already-open CMD create separate Event 4688 records
+       for their own executables and do not match the cmd.exe base rule. Add
+       process-specific rules for direct certutil.exe, reg.exe, schtasks.exe,
+       sc.exe, nltest.exe, curl.exe, and rundll32.exe execution.
 -->
 
 <group name="windows,cmd,cmd_execution,">
@@ -182,32 +186,6 @@
     <group>cmd_suspicious_parent,high_confidence,</group>
   </rule>
 
-  <!-- CMD launched through PowerShell -->
-  <rule id="100339" level="8">
-    <if_sid>100300</if_sid>
-    <field name="win.eventdata.parentProcessName"
-           type="pcre2">(?i)\\(?:powershell|pwsh)\.exe$</field>
-    <description>CMD launched through PowerShell: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
-    <mitre>
-      <id>T1059.001</id>
-      <id>T1059.003</id>
-    </mitre>
-    <group>cmd_from_powershell,shell_chaining,suspicious_parent,</group>
-  </rule>
-
-  <!-- CMD launched through RunAs or UAC consent -->
-  <rule id="100343" level="7">
-    <if_sid>100300</if_sid>
-    <field name="win.eventdata.parentProcessName"
-           type="pcre2">(?i)\\(?:runas|consent)\.exe$</field>
-    <description>CMD launched through RunAs or UAC consent: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
-    <mitre>
-      <id>T1059.003</id>
-      <id>T1548.002</id>
-    </mitre>
-    <group>cmd_elevated_execution,uac,suspicious_parent,</group>
-  </rule>
-
   <!-- certutil decode/decodehex staging -->
   <rule id="100340" level="8">
     <if_sid>100300</if_sid>
@@ -234,6 +212,32 @@
     <group>cmd_certutil_encode,obfuscated_files,</group>
   </rule>
 
+  <!-- CMD launched through PowerShell -->
+  <rule id="100339" level="8">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:powershell|pwsh)\.exe$</field>
+    <description>CMD launched through PowerShell: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1059.003</id>
+    </mitre>
+    <group>cmd_from_powershell,shell_chaining,suspicious_parent,</group>
+  </rule>
+
+  <!-- CMD launched through RunAs or UAC consent -->
+  <rule id="100343" level="7">
+    <if_sid>100300</if_sid>
+    <field name="win.eventdata.parentProcessName"
+           type="pcre2">(?i)\\(?:runas|consent)\.exe$</field>
+    <description>CMD launched through RunAs or UAC consent: parent=$(win.eventdata.parentProcessName), command=$(win.eventdata.commandLine)</description>
+    <mitre>
+      <id>T1059.003</id>
+      <id>T1548.002</id>
+    </mitre>
+    <group>cmd_elevated_execution,uac,suspicious_parent,</group>
+  </rule>
+
 
   <!-- ATOMIC/FALLBACK DETECTIONS -->
 
@@ -254,8 +258,8 @@
   <rule id="100311" level="9">
     <if_sid>100300</if_sid>
     <field name="win.eventdata.commandLine"
-           type="pcre2">(?i)\bnet(?:1|\.exe)?\s+(?:user(?:\s+\S+)?\s+/domain|group\s+.+?\s+/domain|localgroup\s+(?:\\?["']?administrators\\?["']?))\b</field>
-    <description>CMD privileged account or group discovery detected: $(win.eventdata.commandLine)</description>
+           type="pcre2">(?i)\bnet(?:1|\.exe)?\s+(?:user(?:\s+\S+)?\s+/domain|group\s+["']?[^"'\r\n]+["']?\s+/domain|localgroup\s+["']?administrators["']?(?=\s|$))</field>
+    <description>CMD domain-account or group discovery detected: $(win.eventdata.commandLine)</description>
     <mitre>
       <id>T1059.003</id>
       <id>T1087.002</id>
