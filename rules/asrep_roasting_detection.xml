@@ -1,0 +1,85 @@
+<group name="windows,kerberos,asrep_roasting,">
+
+  <!-- Successful Event 4768 visibility -->
+  <rule id="100410" level="3">
+    <if_sid>60103</if_sid>
+
+    <field name="win.system.eventID">^4768$</field>
+    <field name="win.eventdata.status">^0x0$</field>
+
+    <description>Kerberos TGT requested for $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+
+    <group>kerberos_tgt_request,authentication_success,</group>
+  </rule>
+
+  <!-- Successful TGT request without pre-authentication -->
+  <rule id="100411" level="10">
+    <if_sid>100410</if_sid>
+
+    <field name="win.eventdata.preAuthType">^0$</field>
+
+    <field name="win.eventdata.targetUserName"
+           type="pcre2"
+           negate="yes">(?i)(?:\$(?:@[^@]+)?$|^krbtgt(?:@[^@]+)?$)</field>
+
+    <description>Possible AS-REP Roasting: pre-authentication-free AS-REP issued for $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+
+    <group>credential_access,authentication_success,</group>
+  </rule>
+  
+    <!--higher-confidence RC4 -->
+  <rule id="100414" level="12">
+  <if_sid>100411</if_sid>
+
+  <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+
+  <description>High-confidence AS-REP Roasting: RC4 AS-REP issued for $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+
+  <mitre>
+    <id>T1558.004</id>
+  </mitre>
+
+  <group>rc4_asrep,high_confidence,credential_access,</group>
+</rule>
+
+  <!-- AS-REP Roasting verb even if Rubeus was renamed -->
+  <rule id="100413" level="13">
+    <if_sid>67027</if_sid>
+
+    <field name="win.system.eventID">^4688$</field>
+
+    <field name="win.eventdata.commandLine"
+           type="pcre2">(?i)^\s*"?[^"\r\n]*\.exe"?\s+asreproast\b</field>
+
+    <description>Possible renamed AS-REP Roasting tool executed by $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) on $(win.system.computer): $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+
+    <group>asrep_roasting,rubeus,credential_access,attack_tool,process_creation,</group>
+  </rule>
+
+  <!-- Exact Rubeus executable name -->
+  <rule id="100412" level="12">
+    <if_sid>67027</if_sid>
+
+    <field name="win.system.eventID">^4688$</field>
+
+    <field name="win.eventdata.newProcessName"
+           type="pcre2">(?i)\\rubeus\.exe$</field>
+
+    <description>Rubeus executed by $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) on $(win.system.computer): $(win.eventdata.commandLine)</description>
+
+    <mitre>
+      <id>T1558</id>
+    </mitre>
+
+    <group>rubeus,credential_access,attack_tool,process_creation,</group>
+  </rule>
+
+</group>
