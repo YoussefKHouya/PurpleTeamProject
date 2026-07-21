@@ -230,6 +230,69 @@ Temporary copies and extracted material were deleted. Reproducible commands:
 tests/asrep_cmd.md
 ```
 
+## Completed phase: LSASS Credential Dumping
+
+Technique `T1003.001` is complete on WIN01. The controlled operator was
+`WIN01\adam.wilson`, a local administrator. The ordinary domain account
+`SIMULATION\yassine.karimi` was not used as the LSASS-dumping identity.
+
+Telemetry:
+
+```text
+Security Event 4688 — process creation and command line
+Sysmon Event 7      — image load
+Sysmon Event 10     — process access to lsass.exe
+Sysmon Event 11     — dump-like file creation
+WIN01 Wazuh agent   — 004
+```
+
+Packaged Wazuh rules `61612` and `61613` keep Sysmon Events 10 and 11 at level
+0, so custom children restore high-signal alerting:
+
+```text
+100420 / level 12 — known dump-capable process accessed LSASS
+100421 / level 10 — dangerous LSASS access mask from unknown process
+100423 / level 12 — LSASS/dump-like file creation
+100424 / level 10 — rundll32 loaded comsvcs.dll
+100425 / level 13 — comsvcs, ProcDump, or Mimikatz command line
+100426 / level 0  — suppress erroneous 0x101000 substring match
+100427 / level 0  — suppress exact trusted svchost/Defender benign readers
+```
+
+Live-positive coverage:
+
+```text
+comsvcs.dll MiniDump — command detected; Defender prevented dump
+ProcDump              — execution, LSASS access, and dump creation detected
+Renamed ProcDump      — command detected; Defender prevented access/dump
+Mimikatz              — execution and LSASS access detected
+Safe Event 10 probe   — suspicious access control detected
+Safe Event 11 marker  — dump-file rule detected
+```
+
+Observed primary rules were `100425` for command execution, `100420` for
+ProcDump LSASS access, `100423` for dump creation, and packaged rule `92900`
+for Mimikatz access `0x1010`. Renaming ProcDump did not bypass command-line
+coverage.
+
+False-positive tuning is complete. Exact trusted paths suppress known WMI,
+Windows service, Defender, and Wazuh-agent noise without basename-only
+whitelisting; low-risk VirtualBox access remains outside dangerous-mask rules.
+Live false-positive tests for `wmiprvse.exe` access `0x1410`,
+query-only `0x101000`, `VBoxService.exe` access `0x1400`, and `svchost.exe`
+access `0x1000` produced no visible alerts; high-risk access remained detected.
+
+Versioned artifacts:
+
+```text
+rules/lsass_credential_dump_detection.xml
+tests/lsass_cmd.md
+tests/results/lsass_rule_tuning_2026-07-22.md
+```
+
+No LSASS dump, Mimikatz credential output, NTLM hash, password, or attack binary
+is stored in Git. Verdict: **COMPLETE / PASS**.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”
