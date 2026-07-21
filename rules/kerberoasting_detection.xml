@@ -1,0 +1,25 @@
+<group name="windows,kerberos,kerberoasting,">
+
+  <!-- Rescue Event 4769 requests swallowed by built-in rule 92651 (level 0).
+       Match both the normal 60106 path and the remote-IPv4 92651 path. -->
+  <rule id="100400" level="3">
+    <if_sid>60106,92651</if_sid>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.status">^0x0$</field>
+    <description>Kerberos service ticket requested by $(win.eventdata.targetUserName) for $(win.eventdata.serviceName) from $(win.eventdata.ipAddress)</description>
+    <group>kerberos_service_ticket,authentication_success,</group>
+  </rule>
+
+  <!-- RC4 ticket for a non-machine service account: Kerberoasting signal. -->
+  <rule id="100401" level="9">
+    <if_sid>100400</if_sid>
+    <field name="win.eventdata.ticketEncryptionType" type="pcre2">(?i)^0x17$</field>
+    <field name="win.eventdata.serviceName" type="pcre2" negate="yes">(?i)(?:\$$|^krbtgt$)</field>
+    <description>Possible Kerberoasting: RC4 service ticket requested by $(win.eventdata.targetUserName) for $(win.eventdata.serviceName) from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <group>kerberoasting,rc4_service_ticket,credential_access,</group>
+  </rule>
+
+</group>
