@@ -12,36 +12,36 @@ Private purple-team project for Wazuh command and scripting interpreter detectio
 - False-positive review and regression evidence
 - Versioned diffs for rule modifications
 
+## Rule-to-test mapping
+
+Every versioned rule XML has one command playbook under `tests/`.
+
+| Rule XML | Command playbook |
+|---|---|
+| `rules/cmd_detection.xml` | `tests/cmdshell_cmd.md` |
+| `rules/powershell-detection.xml` | `tests/powershell_cmd.md` |
+| `rules/unix_shell_detection.xml` | `tests/unixshell_cmd.md` |
+| `rules/kerberoasting_detection.xml` | `tests/kerberoasting_cmd.md` |
+| `rules/asrep_roasting_detection.xml` | `tests/asrep_cmd.md` |
+| `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
+
+Each playbook contains prerequisites, bounded attack-trigger commands, expected
+Wazuh rule IDs, local telemetry checks, dashboard filters, false-positive
+controls where applicable, and cleanup.
+
+Historical validation evidence remains under `tests/results/`; it is separate
+from reproducible command playbooks.
+
 ## Current status
 
-### PowerShell
-
-Core command behavior deployed and validated. Parent-process scenarios and wider benign-administration sampling remain.
-
-Evidence:
-
-- `tests/results/powershell_validation_2026-07-19.md`
-
-### Unix Shell
-
-Core T1059.004 phase deployed and live-validated:
-
-- Installed auditd execution telemetry
-- Added tested audit dispatcher for complete decoded command lines
-- Added rules 100200–100210 and 100220–100226
-- Ran 20 positive tests and 8 negative controls
-- Added live-validated BusyBox `sh`/`ash`, wget-to-shell, reverse-shell, and temporary-execution coverage
-- Tuned generic network-utility severity from level 10 to level 6
-- Verified manager, agent, auditd, parser, cleanup, and zero lost audit events
-
-Evidence and deployment details:
-
-- `tests/results/unix_shell_validation_2026-07-19.md`
-- `agents/linux/README.md`
-
-### Next phase
-
-- T1059.003 — Windows Command Shell/MS-DOS
+```text
+PowerShell execution:       validated
+Windows Command Shell:      validated
+Unix Shell execution:       validated
+Kerberoasting:              validated
+AS-REP Roasting:            validated
+LSASS credential dumping:   validated and tuned
+```
 
 ## Workflow
 

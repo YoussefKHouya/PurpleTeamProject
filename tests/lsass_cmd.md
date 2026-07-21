@@ -398,6 +398,13 @@ GrantedAccess: 0x101000
 Expected Wazuh result: no alert through suppression rule 100426
 ```
 
+### Exact benign-reader suppression
+
+Rule `100427` suppresses only exact known-benign `svchost.exe` or Defender
+`MsMpEng.exe` LSASS readers selected by packaged rule `92900` with access
+`0x1010` or `0x40`. Historical false-positive tests confirmed no visible alert.
+Do not globally whitelist those basenames; the rule requires trusted full paths.
+
 ## Local telemetry verification
 
 Set `$Start` immediately before each test:

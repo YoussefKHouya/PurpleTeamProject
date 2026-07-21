@@ -1,6 +1,15 @@
-# Wazuh PowerShell Detection Test Cases
+# PowerShell Detection Commands
 
-Purpose: harmless purple-team probes for `powershell_detection.xml`.
+## Rule file
+
+```text
+rules/powershell-detection.xml
+```
+
+Purpose: bounded purple-team commands for `powershell-detection.xml` on WIN01.
+Current workstation Wazuh agent: `004`.
+
+All child detections branch from level-0 process-creation parent `100100`.
 
 These commands are not payloads. They emit test strings, use loopback/closed-port URLs, or intentionally fail. Do not replace loopback URLs with external infrastructure during ordinary validation.
 
@@ -28,6 +37,13 @@ These commands are not payloads. They emit test strings, use loopback/closed-por
 | T10 | IEX-free module execution | 100120 |
 | T11 | Obfuscation pattern | 100119 |
 | T12 | Full chain syntax | 100136, if rule ordering/selection behaves as designed |
+| T17 | Combined DC and account discovery | 100138 |
+| T18 | Domain account discovery | 100121 |
+| T19 | Domain/DC discovery | 100122 |
+| T20 | Temporary registry change | 100123 |
+| T21 | Temporary Run-key persistence | 100139 |
+| T22 | Suspicious `wscript.exe` parent | 100117 |
+| T23 | Suspicious parent plus download | 100135 |
 
 ## Commands
 
@@ -131,6 +147,79 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "
 
 Expected: `100136` if all four conditions and child-rule selection behave as intended.
 
+### T17 — combined DC and domain-account discovery
+
+```powershell
+powershell.exe -NoProfile -Command "nltest.exe /dsgetdc:simulation.local; net.exe user /domain"
+```
+
+Expected: `100138`, level 10.
+
+### T18 — domain-account discovery
+
+```powershell
+powershell.exe -NoProfile -Command "net.exe user /domain"
+```
+
+Expected: `100121`, level 9.
+
+### T19 — domain/DC discovery
+
+```powershell
+powershell.exe -NoProfile -Command "nltest.exe /dsgetdc:simulation.local"
+```
+
+Expected: `100122`, level 8.
+
+### T20 — temporary registry modification
+
+```powershell
+powershell.exe -NoProfile -Command "New-Item -Path HKCU:\Software\PurpleTeam\WazuhPsTest -Force | Out-Null; New-ItemProperty -Path HKCU:\Software\PurpleTeam\WazuhPsTest -Name Marker -Value WAZUH_PS_T20 -PropertyType String -Force | Out-Null; Remove-Item HKCU:\Software\PurpleTeam\WazuhPsTest -Recurse -Force"
+```
+
+Expected: `100123`, level 8.
+
+### T21 — temporary Run-key persistence
+
+```powershell
+powershell.exe -NoProfile -Command "New-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Run -Name PurpleTeam_WazuhPsTest -Value 'cmd.exe /c echo WAZUH_PS_T21' -PropertyType String -Force | Out-Null; Remove-ItemProperty -Path HKCU:\Software\Microsoft\Windows\CurrentVersion\Run -Name PurpleTeam_WazuhPsTest -Force"
+```
+
+Expected: `100139`, level 10.
+
+### T22 — suspicious parent process
+
+```powershell
+$Vbs = "$env:TEMP\WAZUH_PS_T22.vbs"
+Set-Content -Path $Vbs -Encoding Ascii -Value @'
+CreateObject("WScript.Shell").Run "powershell.exe -NoProfile -Command ""Write-Output WAZUH_PS_T22""", 0, True
+'@
+wscript.exe $Vbs
+Remove-Item $Vbs -Force
+```
+
+Expected: `100117`, level 10; parent image ends in `wscript.exe`.
+
+### T23 — suspicious parent plus loopback download
+
+```powershell
+$Vbs = "$env:TEMP\WAZUH_PS_T23.vbs"
+Set-Content -Path $Vbs -Encoding Ascii -Value @'
+CreateObject("WScript.Shell").Run "powershell.exe -NoProfile -Command ""try { Invoke-WebRequest http://127.0.0.1:9/WAZUH_PS_T23 -UseBasicParsing } catch {}""", 0, True
+'@
+wscript.exe $Vbs
+Remove-Item $Vbs -Force
+```
+
+Expected: `100135`, level 12.
+
+### Service-hosted parent rule `100118`
+
+Rule `100118` requires `svchost.exe` to be the actual parent of PowerShell plus
+suspicious arguments. Ordinary `Start-Process` or temporary service creation
+produces `powershell.exe` under `services.exe`, not `svchost.exe`. Do not fake a
+PASS. Validate this rule only with a genuine captured service-hosted event.
+
 ## Verification
 
 For every test, record:
@@ -208,5 +297,34 @@ Remove-Item "$env:TEMP\wazuh_purple_iex.txt" -Force -ErrorAction SilentlyContinu
 - T15 launches only `cmd.exe` to write a marker file.
 - No test creates persistence, dumps credentials, changes policy, disables security, deletes logs, or touches another host.
 - T07 hides the console; use only on a test host and expect no visible window.
-- Do not test parent-process rules by launching from real Office documents. Simulate/submit raw events to `wazuh-logtest` instead.
+- Do not test parent-process rules by launching from real Office documents. Use the bounded `wscript.exe` parent tests above.
 - A matching alert proves detection only, not prevention.
+
+## Dashboard filter
+
+```text
+agent.id:004 AND rule.id:(100110 OR 100111 OR 100112 OR 100113 OR 100114 OR 100115 OR 100116 OR 100117 OR 100118 OR 100119 OR 100120 OR 100121 OR 100122 OR 100123 OR 100130 OR 100131 OR 100132 OR 100133 OR 100134 OR 100135 OR 100136 OR 100137 OR 100138 OR 100139)
+```
+
+## Cleanup
+
+```powershell
+Remove-Item `
+    "$env:TEMP\wazuh_purple_*", `
+    "$env:TEMP\WAZUH_PS_*.vbs" `
+    -Force -ErrorAction SilentlyContinue
+
+Remove-Item 'HKCU:\Software\PurpleTeam\WazuhPsTest' `
+    -Recurse -Force -ErrorAction SilentlyContinue
+
+Remove-ItemProperty `
+    -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' `
+    -Name 'PurpleTeam_WazuhPsTest' `
+    -Force -ErrorAction SilentlyContinue
+```
+
+Historical PASS evidence:
+
+```text
+tests/results/powershell_validation_2026-07-19.md
+```
