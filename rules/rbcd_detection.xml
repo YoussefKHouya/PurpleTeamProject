@@ -1,0 +1,78 @@
+<group name="windows,active_directory,kerberos,rbcd,">
+
+  <!-- Precursor: a human identity creates a computer account (Event 4741). -->
+  <rule id="100430" level="8">
+    <if_sid>60121</if_sid>
+    <field name="win.system.eventID">^4741$</field>
+    <field name="win.eventdata.subjectUserName" type="pcre2" negate="yes">(?i)(?:\$$|^(?:SYSTEM|ANONYMOUS LOGON)$)</field>
+    <description>Possible RBCD precursor: computer account $(win.eventdata.samAccountName) created by user $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1136.002</id>
+    </mitre>
+    <group>rbcd,computer_account_created,account_manipulation,privilege_escalation,</group>
+  </rule>
+
+  <!-- Core RBCD mutation: msDS-AllowedToActOnBehalfOfOtherIdentity value added. -->
+  <rule id="100431" level="12">
+    <if_sid>60229</if_sid>
+    <field name="win.system.eventID">^5136$</field>
+    <field name="win.eventdata.objectClass">^computer$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName">^msDS-AllowedToActOnBehalfOfOtherIdentity$</field>
+    <field name="win.eventdata.operationType">^%%14674$</field>
+    <description>RBCD configured: $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) added msDS-AllowedToActOnBehalfOfOtherIdentity on $(win.eventdata.objectDN)</description>
+    <mitre>
+      <id>T1098</id>
+    </mitre>
+    <group>rbcd,active_directory_object_modified,account_manipulation,privilege_escalation,</group>
+  </rule>
+
+  <!-- S4U2Proxy evidence: machine account requests a service ticket with a transited service. -->
+  <rule id="100432" level="10">
+    <if_sid>100400</if_sid>
+    <field name="win.system.eventID">^4769$</field>
+    <field name="win.eventdata.status">^0x0$</field>
+    <field name="win.eventdata.ticketOptions">^0x40830000$</field>
+    <field name="win.eventdata.targetUserName" type="pcre2">(?i)\$@</field>
+    <field name="win.eventdata.serviceName" type="pcre2">(?i)\$$</field>
+    <field name="win.eventdata.transmittedServices" type="pcre2">(?i)\S+\$@</field>
+    <description>Possible RBCD S4U2Proxy: $(win.eventdata.targetUserName) requested service ticket for $(win.eventdata.serviceName) via $(win.eventdata.transmittedServices) from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1550.003</id>
+    </mitre>
+    <group>rbcd,s4u2proxy,kerberos_service_ticket,lateral_movement,privilege_escalation,</group>
+  </rule>
+
+  <!-- Rescue remote 4624 events suppressed by built-in rule 92651 (level 0). -->
+  <rule id="100433" level="3">
+    <if_sid>92651</if_sid>
+    <field name="win.system.eventID">^4624$</field>
+    <description>Remote logon: $(win.eventdata.targetDomainName)\$(win.eventdata.targetUserName) from $(win.eventdata.ipAddress) using $(win.eventdata.authenticationPackageName)</description>
+    <group>authentication_success,remote_logon,</group>
+  </rule>
+
+  <!-- Impact: delegated machine service authenticates as a domain RID-500 account. -->
+  <rule id="100434" level="12">
+    <if_sid>100433</if_sid>
+    <field name="win.eventdata.logonType">^3$</field>
+    <field name="win.eventdata.authenticationPackageName">^Kerberos$</field>
+    <field name="win.eventdata.targetUserSid" type="pcre2">-500$</field>
+    <field name="win.eventdata.transmittedServices" type="pcre2">(?i)\S+\$@</field>
+    <description>Possible RBCD impact: delegated Kerberos network logon as RID-500 account $(win.eventdata.targetDomainName)\$(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1550.003</id>
+    </mitre>
+    <group>rbcd,delegated_logon,valid_accounts,lateral_movement,privilege_escalation,</group>
+  </rule>
+
+  <!-- Cleanup or defensive rollback: RBCD delegation value removed. -->
+  <rule id="100436" level="6">
+    <if_sid>60229</if_sid>
+    <field name="win.system.eventID">^5136$</field>
+    <field name="win.eventdata.objectClass">^computer$</field>
+    <field name="win.eventdata.attributeLDAPDisplayName">^msDS-AllowedToActOnBehalfOfOtherIdentity$</field>
+    <field name="win.eventdata.operationType">^%%14675$</field>
+    <description>RBCD delegation removed by $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) from $(win.eventdata.objectDN)</description>
+    <group>rbcd,active_directory_object_modified,configuration_change,</group>
+  </rule>
+
+</group>

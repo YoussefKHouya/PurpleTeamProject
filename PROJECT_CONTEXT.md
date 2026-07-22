@@ -208,7 +208,7 @@ Failure: enabled
 
 Expected high-signal AS-REP fields include a successful Event 4768 for the controlled target with `PreAuthType=0`; ticket encryption type must be recorded. Verify DC Event 4768 reaches Wazuh before requesting AS-REP material. Capture exact target state, DC record ID, and Wazuh rule/level/MITRE mapping. Keep one dedicated controlled account pre-auth-disabled throughout the active lab phase; do not restore Kerberos pre-authentication unless the user explicitly closes the phase.
 
-After AS-REP, add one shared post-roast credential-use layer correlating Kerberoasting/AS-REP alerts with later Events 4624, 4648, and 4672; offline cracking itself is not visible to Wazuh.
+The shared post-roast credential-use correlation layer is explicitly deferred. Its future design may correlate Kerberoasting/AS-REP exposure with later Events 4624, 4648, and 4672 using a persistent exposed-account watchlist rather than a short time window; offline cracking itself is not visible to Wazuh. Do not resume this layer unless the user requests it.
 
 AS-REP core positive detection is now live-proven. Built-in Wazuh 4.14.6 left successful Event 4768 under rule `60103` at level 0 because rule `60106` excludes 4768. Custom rules were created and deployed:
 
@@ -292,6 +292,148 @@ tests/results/lsass_rule_tuning_2026-07-22.md
 
 No LSASS dump, Mimikatz credential output, NTLM hash, password, or attack binary
 is stored in Git. Verdict: **COMPLETE / PASS**.
+
+## Planned phases: RBCD and Shadow Credentials
+
+The next approved attack family is Active Directory ACL and Kerberos abuse. The
+user will prepare the required lab state before execution. Do not modify AD or
+run either attack until that environment setup is complete and the user starts
+the phase.
+
+Execution order:
+
+```text
+1. Resource-Based Constrained Delegation (RBCD)
+2. Shadow Credentials
+3. Optional later follow-up: DCSync
+```
+
+Prepared RBCD target:
+
+```text
+Host: OTDC01
+Role: SIMULATION.LOCAL member server
+Address: 192.168.56.112
+OS: Windows Server 2022 Standard Evaluation
+File Server feature: installed
+SMB service: running
+Controlled share: \\OTDC01\RBCD-Target$
+Share path: C:\FileServerData\RBCD-Target
+Access: BUILTIN\Administrators and SYSTEM only
+Computer object: CN=OTDC01,CN=Computers,DC=SIMULATION,DC=LOCAL
+Secure channel: healthy
+```
+
+The target exposes valid `HOST`, `RestrictedKrbHost`, and `WSMAN` computer SPNs,
+and real access to the encrypted administrative SMB share is verified. The Wazuh
+agent is installed on OTDC01 from the official Wazuh MSI `4.14.6-1` at:
+
+```text
+C:\Tools\Wazuh\wazuh-agent-4.14.6-1.msi
+SHA-256: BC1412D6CFD6D82BA8D5D5EC22ECFC80D85990228ADEAC40B809B3B46E745351
+Authenticode: Valid, Wazuh, Inc
+Installed agent version: v4.14.6
+Service: WazuhSvc, Running, Automatic
+Configured manager/enrollment server: 192.168.56.110
+Configured agent name: OTDC01
+```
+
+OTDC01 is enrolled with the Wazuh manager as agent `005` and is Active. The
+controlled principal `SIMULATION\sofia.bennett` has one direct, non-inherited
+`GenericWrite` allow ACE on the OTDC01 computer object. No `GenericAll`, group
+membership, or password change was added. `Directory Service Changes` auditing
+is enabled, and the OTDC01 object has a Success `WriteProperty` SACL scoped to
+`msDS-AllowedToActOnBehalfOfOtherIdentity`; verified test records `21849` and
+`21850` reached Wazuh.
+
+### RBCD execution and initial detection result — 2026-07-22
+
+The controlled RBCD chain succeeded from the non-administrative Sofia identity:
+
+```text
+RBCDCLIENT$ created by sofia.bennett
+RBCD delegation added to OTDC01$
+S4U2Self and S4U2Proxy completed
+Delegated Administrator CIFS ticket obtained
+\\OTDC01\RBCD-Target$ read succeeded
+```
+
+Baseline Sofia access to the protected share failed with
+`STATUS_ACCESS_DENIED`; access with the delegated Administrator service ticket
+succeeded and read the controlled `readme.txt`. No ticket, machine password,
+user password, hash, or credential material is stored in Git.
+
+Captured evidence:
+
+```text
+4741 / DC record 21904 / Wazuh rule 60121 level 5
+  RBCDCLIENT$ created by sofia.bennett
+5136 / DC record 21914 / Wazuh rule 60229 level 4
+  msDS-AllowedToActOnBehalfOfOtherIdentity added by sofia.bennett
+4769 / DC records 21920 and 21921 / Wazuh rule 100400 level 3
+  S4U2Self and S4U2Proxy activity
+4624 / OTDC01 record 4066
+  SIMULATION.LOCAL\\Administrator, logon type 3, Kerberos, delegated service
+```
+
+Native/custom baseline detection was **PARTIAL**: the RBCD mutation and S4U
+activity were visible but low-severity/generic, and target record `4066` was
+suppressed from alerts by built-in rule `92651` level 0.
+
+Evidence-based rules were created in `rules/rbcd_detection.xml` and deployed to
+`/var/ossec/etc/rules/rbcd_detection.xml`:
+
+```text
+100430 level 8  — human-created computer account precursor
+100431 level 12 — RBCD attribute value added
+100432 level 10 — S4U2Proxy ticket pattern
+100433 level 3  — rescue remote 4624 suppressed by rule 92651
+100434 level 12 — delegated Kerberos network logon as RID-500 account
+100436 level 6  — RBCD attribute value removed/cleanup
+```
+
+The Wazuh configuration test passed, manager restart succeeded, service remained
+Active, deployed/local SHA-256 matched
+`b640922530da3053888843d265b939f3be4408d6090099d48e739993e1ddc1c2`, and no
+recent manager load errors were found. Per user instruction, the attack chain was
+not rerun after rule deployment. Therefore custom live positive alerts,
+false-positive tests, and cleanup remain explicitly deferred; these rules are
+**DEPLOYED / LOAD-VERIFIED**, not yet **COMPLETE / PASS**.
+
+RBCD should begin with a read-only prerequisite and telemetry gate. Record the
+controlled principal that can modify the target computer, the target computer,
+MachineAccountQuota/computer-account state, delegation attribute state, and
+reachable service. Primary evidence candidates are:
+
+```text
+4741 — computer account creation, when used
+5136 — msDS-AllowedToActOnBehalfOfOtherIdentity modification
+4769 — S4U/service-ticket activity
+4624 — resulting authentication
+```
+
+Shadow Credentials should start only after verifying that the DC supports
+Kerberos PKINIT and has a suitable KDC certificate. Record the controlled
+principal with write access, target object, and original
+`msDS-KeyCredentialLink` value before any modification. Primary evidence
+candidates are:
+
+```text
+5136 — msDS-KeyCredentialLink modification
+4768 — PKINIT/TGT request
+4624 — resulting authentication
+```
+
+For both phases: execute one atomic test at a time, pause for dashboard
+confirmation after each attack command, create custom Wazuh rules only for a
+live-proven detection gap, run false-positive tests, restore modified AD
+attributes during cleanup unless the user explicitly keeps the lab condition,
+and retain no tickets, certificates, private keys, hashes, or credentials in
+Git.
+
+DCSync remains a later candidate, not the immediate next phase. If selected,
+prepare a dedicated controlled principal with replication rights and validate
+Directory Service Access auditing plus Event 4662 before execution.
 
 ## Internship report conventions
 
