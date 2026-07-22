@@ -293,6 +293,49 @@ tests/results/lsass_rule_tuning_2026-07-22.md
 No LSASS dump, Mimikatz credential output, NTLM hash, password, or attack binary
 is stored in Git. Verdict: **COMPLETE / PASS**.
 
+## Internship report conventions
+
+The French academic internship report is intended for both the school and
+recruiters. Its working LaTeX source is `~/S4/main.tex`. Preserve the original
+`main.tex` cover-page form: two logos at the top, the large blue subject box
+containing level, academic year, and internship dates, followed by author,
+supervisor, and cycle fields.
+
+The report must follow an academic progression:
+
+```text
+general concept -> security problem -> methodology -> technical work
+-> evidence and results -> discussion and limits
+```
+
+The conceptual chapter introduces ideas before the technical chapters use
+them. Keep treatment proportional across completed phases and avoid recency
+bias: LSASS must not receive disproportionate conceptual detail merely because
+it was the most recently discussed phase. Later revisions may expand the other
+techniques from their validated XML rules, command playbooks, and executed
+evidence, but only when the user explicitly requests that expansion.
+
+Keep the report analytical rather than turning its main body into an attack
+playbook. Place commands, configurations, raw rule excerpts, and detailed
+operational evidence in annexes. Explain results and design reasoning in the
+main chapters.
+
+Report privacy requirements are strict:
+
+- Never mention Pi, MINE, bridge hosts, Tailscale, Ligolo, private routes, or
+  private infrastructure identifiers.
+- Never include credentials, password hashes, Kerberos material, LSASS output,
+  secrets, or private access details.
+- Use clearly labelled placeholders for missing official logos and attack
+  screenshots; never fabricate an image or claim that a screenshot exists.
+- When the user asks why a report section exists, explain the reasoning only.
+  Do not edit the report unless the user explicitly requests a change.
+
+Current completed technical families available as report sources are
+PowerShell, Windows Command Shell, Unix Shell, Kerberoasting, AS-REP Roasting,
+and LSASS Credential Dumping. Their versioned rules, one-to-one command
+playbooks, and validation reports remain the authoritative technical sources.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”
