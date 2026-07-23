@@ -5,6 +5,7 @@
     <if_sid>60121</if_sid>
     <field name="win.system.eventID">^4741$</field>
     <field name="win.eventdata.subjectUserName" type="pcre2" negate="yes">(?i)(?:\$$|^(?:SYSTEM|ANONYMOUS LOGON)$)</field>
+    <field name="win.eventdata.privilegeList">^SeMachineAccountPrivilege$</field>
     <description>Possible RBCD precursor: computer account $(win.eventdata.samAccountName) created by user $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName)</description>
     <mitre>
       <id>T1136.002</id>
@@ -19,7 +20,7 @@
     <field name="win.eventdata.objectClass">^computer$</field>
     <field name="win.eventdata.attributeLDAPDisplayName">^msDS-AllowedToActOnBehalfOfOtherIdentity$</field>
     <field name="win.eventdata.operationType">^%%14674$</field>
-    <description>RBCD configured: $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) added msDS-AllowedToActOnBehalfOfOtherIdentity on $(win.eventdata.objectDN)</description>
+    <description>RBCD attribute value added: $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName) modified msDS-AllowedToActOnBehalfOfOtherIdentity on $(win.eventdata.objectDN)</description>
     <mitre>
       <id>T1098</id>
     </mitre>

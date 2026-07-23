@@ -223,7 +223,7 @@ systemctl is-active wazuh-manager
 ## 20. Cleanup RBCD delegation later
 
 ```bash
-impacket-rbcd -delegate-from "$ATTACKER" -delegate-to "$TARGET" -action remove -dc-ip "$DC_IP" "$DOMAIN/$USER:<SOFIA_PASSWORD>"
+impacket-rbcd -delegate-to "$TARGET" -action flush -dc-ip "$DC_IP" "$DOMAIN/$USER:<SOFIA_PASSWORD>"
 ```
 
 ## 21. Delete attacker computer later

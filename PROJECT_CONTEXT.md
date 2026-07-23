@@ -293,7 +293,7 @@ tests/results/lsass_rule_tuning_2026-07-22.md
 No LSASS dump, Mimikatz credential output, NTLM hash, password, or attack binary
 is stored in Git. Verdict: **COMPLETE / PASS**.
 
-## Planned phases: RBCD and Shadow Credentials
+## Completed RBCD phase and planned Shadow Credentials
 
 The next approved attack family is Active Directory ACL and Kerberos abuse. The
 user will prepare the required lab state before execution. Do not modify AD or
@@ -338,69 +338,92 @@ Configured manager/enrollment server: 192.168.56.110
 Configured agent name: OTDC01
 ```
 
-OTDC01 is enrolled with the Wazuh manager as agent `005` and is Active. The
-controlled principal `SIMULATION\sofia.bennett` has one direct, non-inherited
-`GenericWrite` allow ACE on the OTDC01 computer object. No `GenericAll`, group
-membership, or password change was added. `Directory Service Changes` auditing
-is enabled, and the OTDC01 object has a Success `WriteProperty` SACL scoped to
-`msDS-AllowedToActOnBehalfOfOtherIdentity`; verified test records `21849` and
-`21850` reached Wazuh.
+OTDC01 is currently enrolled with the Wazuh manager as agent `006` and is
+Active. Historical target-side RBCD impact alerts were generated under agent
+`005`; the agent was re-enrolled after correcting an eight-hour future clock and
+the resulting stale future keepalive. The controlled principal
+`SIMULATION\sofia.bennett` retains one direct, non-inherited `GenericWrite` allow
+ACE on the OTDC01 computer object. No `GenericAll`, privileged group membership,
+or password change was added. The exact RBCD attribute SACL remains present.
 
-### RBCD execution and initial detection result — 2026-07-22
+### RBCD validation completed — 2026-07-23
 
-The controlled RBCD chain succeeded from the non-administrative Sofia identity:
-
-```text
-RBCDCLIENT$ created by sofia.bennett
-RBCD delegation added to OTDC01$
-S4U2Self and S4U2Proxy completed
-Delegated Administrator CIFS ticket obtained
-\\OTDC01\RBCD-Target$ read succeeded
-```
-
-Baseline Sofia access to the protected share failed with
-`STATUS_ACCESS_DENIED`; access with the delegated Administrator service ticket
-succeeded and read the controlled `readme.txt`. No ticket, machine password,
-user password, hash, or credential material is stored in Git.
-
-Captured evidence:
+Final verdict:
 
 ```text
-4741 / DC record 21904 / Wazuh rule 60121 level 5
-  RBCDCLIENT$ created by sofia.bennett
-5136 / DC record 21914 / Wazuh rule 60229 level 4
-  msDS-AllowedToActOnBehalfOfOtherIdentity added by sofia.bennett
-4769 / DC records 21920 and 21921 / Wazuh rule 100400 level 3
-  S4U2Self and S4U2Proxy activity
-4624 / OTDC01 record 4066
-  SIMULATION.LOCAL\\Administrator, logon type 3, Kerberos, delegated service
+Exploitation: PASS
+Wazuh native detection: PARTIAL
+Custom rules: PASS
+False-positive tests: PASS after tuning
+Cleanup: PASS
+Overall: COMPLETE / PASS
 ```
 
-Native/custom baseline detection was **PARTIAL**: the RBCD mutation and S4U
-activity were visible but low-severity/generic, and target record `4066` was
-suppressed from alerts by built-in rule `92651` level 0.
-
-Evidence-based rules were created in `rules/rbcd_detection.xml` and deployed to
-`/var/ossec/etc/rules/rbcd_detection.xml`:
+Live custom-rule evidence:
 
 ```text
-100430 level 8  — human-created computer account precursor
-100431 level 12 — RBCD attribute value added
-100432 level 10 — S4U2Proxy ticket pattern
-100433 level 3  — rescue remote 4624 suppressed by rule 92651
-100434 level 12 — delegated Kerberos network logon as RID-500 account
-100436 level 6  — RBCD attribute value removed/cleanup
+4741 / DC record 22312 / rule 100430 level 8
+  RBCDCLIENT$ created by sofia.bennett via MachineAccountQuota
+5136 / DC record 22320 / rule 100431 level 12
+  RBCD attribute value added on OTDC01$ by sofia.bennett
+4769 / DC record 22351 / rule 100400 level 3
+  S4U2Self for RBCDCLIENT$
+4769 / DC record 22352 / rule 100432 level 10
+  S4U2Proxy to OTDC01$ with transmitted service
+4624 / OTDC01 record 4986 / rule 100434 level 12
+  delegated Kerberos network logon as domain RID-500 Administrator
+5136 / DC record 22481 / rule 100436 level 6
+  final RBCD attribute flush / Value Deleted
 ```
 
-The Wazuh configuration test passed, manager restart succeeded, service remained
-Active, deployed/local SHA-256 matched
-`b640922530da3053888843d265b939f3be4408d6090099d48e739993e1ddc1c2`, and no
-recent manager load errors were found. Per user instruction, the attack chain was
-not rerun after rule deployment. Therefore custom live positive alerts,
-false-positive tests, and cleanup remain explicitly deferred; these rules are
-**DEPLOYED / LOAD-VERIFIED**, not yet **COMPLETE / PASS**.
+The protected-share baseline and post-cleanup checks returned
+`STATUS_ACCESS_DENIED`; the delegated Administrator CIFS ticket read the
+controlled file during exploitation.
 
-RBCD should begin with a read-only prerequisite and telemetry gate. Record the
+False-positive results:
+
+```text
+22453 — unrelated description 5136 -> native 60229 only
+22458 — ordinary Kerberos 4769 -> visibility 100400 only
+4992  — ordinary Sofia Kerberos 4624 -> visibility 100433 only
+22470 — Sofia quota machine canary -> 100430 level 8
+22477 — Administrator provisioning canary -> native 60121 only
+```
+
+Rule `100430` was tuned to require `SeMachineAccountPrivilege`, eliminating the
+confirmed legitimate Domain Administrator provisioning false positive. Cleanup
+was changed from Impacket `remove`, which rewrites an empty security descriptor,
+to `flush`, which leaves the attribute absent. Rule `100431` now describes the
+exact observed behavior: an RBCD attribute value was added.
+
+Final cleanup was verified:
+
+```text
+msDS-AllowedToActOnBehalfOfOtherIdentity: absent
+RBCDCLIENT$ and all canary computer objects: absent
+Temporary machine passwords and ccache files: removed
+Post-cleanup protected-share read as Sofia: STATUS_ACCESS_DENIED
+DC01 agent 001 and OTDC01 agent 006: Active
+```
+
+Final local/deployed rule SHA-256:
+
+```text
+81a0cc800601459fc12f631335c9959bbb107549566b3fa353ec733447d0723e
+```
+
+Authoritative artifacts:
+
+```text
+rules/rbcd_detection.xml
+tests/RBCD_cmd.md
+tests/results/rbcd_validation_2026-07-23.md
+```
+
+No passwords, generated machine secrets, Kerberos tickets, hashes, or private
+routing details are stored in Git.
+
+Future RBCD reruns should begin with a read-only prerequisite and telemetry gate. Record the
 controlled principal that can modify the target computer, the target computer,
 MachineAccountQuota/computer-account state, delegation attribute state, and
 reachable service. Primary evidence candidates are:
@@ -475,7 +498,7 @@ Report privacy requirements are strict:
 
 Current completed technical families available as report sources are
 PowerShell, Windows Command Shell, Unix Shell, Kerberoasting, AS-REP Roasting,
-and LSASS Credential Dumping. Their versioned rules, one-to-one command
+LSASS Credential Dumping, and RBCD. Their versioned rules, one-to-one command
 playbooks, and validation reports remain the authoritative technical sources.
 
 ## Collaboration terms
