@@ -1,0 +1,70 @@
+<group name="windows,active_directory,adcs,certighost,">
+
+  <!-- Restore visibility for successful AD CS request receipt (Security 4886). -->
+  <rule id="100440" level="3">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4886$</field>
+    <description>AD CS certificate request received: requester $(win.eventdata.requester), request $(win.eventdata.requestId)</description>
+    <group>adcs,certificate_request,</group>
+  </rule>
+
+  <!-- CertiGhost requires both requester-controlled chase attributes. -->
+  <rule id="100441" level="13">
+    <if_sid>100440</if_sid>
+    <field name="win.eventdata.attributes" type="pcre2">(?is)\bcdc:\s*[^\r\n]+\s+rmd:\s*[^\r\n]+</field>
+    <description>Possible CertiGhost: AD CS request $(win.eventdata.requestId) from $(win.eventdata.requester) supplied cdc and rmd chase attributes</description>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <group>certighost,adcs,certificate_request,authentication_certificate_abuse,</group>
+  </rule>
+
+  <!-- Patched servers reject IP-literal cdc values; vulnerable servers may chase them. -->
+  <rule id="100442" level="15">
+    <if_sid>100441</if_sid>
+    <field name="win.eventdata.attributes" type="pcre2">(?i)\bcdc:\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}(?:\s|$)</field>
+    <description>CertiGhost high-confidence attempt: AD CS request $(win.eventdata.requestId) used IP-literal cdc chase target</description>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <group>certighost,adcs,certificate_request,high_confidence,</group>
+  </rule>
+
+  <!-- Explicit CA denial records the failed CertiGhost request and preserves attributes. -->
+  <rule id="100443" level="10">
+    <if_sid>60104</if_sid>
+    <field name="win.system.eventID">^4888$</field>
+    <field name="win.eventdata.attributes" type="pcre2">(?is)\bcdc:\s*[^\r\n]+\s+rmd:\s*[^\r\n]+</field>
+    <description>CertiGhost request denied by AD CS: request $(win.eventdata.requestId), requester $(win.eventdata.requester), disposition $(win.eventdata.disposition)</description>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <group>certighost,adcs,certificate_request,blocked_attempt,</group>
+  </rule>
+
+  <!-- Issuance after cdc/rmd request is exploit-success evidence. -->
+  <rule id="100444" level="15">
+    <if_sid>60103</if_sid>
+    <field name="win.system.eventID">^4887$</field>
+    <field name="win.eventdata.attributes" type="pcre2">(?is)\bcdc:\s*[^\r\n]+\s+rmd:\s*[^\r\n]+</field>
+    <description>CertiGhost probable issuance: AD CS issued certificate for request $(win.eventdata.requestId) from $(win.eventdata.requester) with cdc/rmd attributes</description>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <group>certighost,adcs,certificate_issued,authentication_certificate_abuse,</group>
+  </rule>
+
+  <!-- CA network chase should leave certsrv.exe Event 3 to a non-loopback peer. -->
+  <rule id="100445" level="12">
+    <if_sid>61605</if_sid>
+    <field name="win.eventdata.image" type="pcre2">(?i)\\certsrv\.exe$</field>
+    <field name="win.eventdata.initiated">^true$</field>
+    <field name="win.eventdata.destinationIp" type="pcre2" negate="yes">^(?:127\.0\.0\.1|::1)$</field>
+    <description>AD CS certsrv.exe initiated outbound connection to $(win.eventdata.destinationIp):$(win.eventdata.destinationPort)</description>
+    <mitre>
+      <id>T1649</id>
+    </mitre>
+    <group>certighost,adcs,sysmon_event3,network_connection,</group>
+  </rule>
+
+</group>
