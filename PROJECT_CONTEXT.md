@@ -293,19 +293,15 @@ tests/results/lsass_rule_tuning_2026-07-22.md
 No LSASS dump, Mimikatz credential output, NTLM hash, password, or attack binary
 is stored in Git. Verdict: **COMPLETE / PASS**.
 
-## Completed RBCD phase and planned Shadow Credentials
+## Completed RBCD, Shadow Credentials, and CertiGhost validation
 
-The next approved attack family is Active Directory ACL and Kerberos abuse. The
-user will prepare the required lab state before execution. Do not modify AD or
-run either attack until that environment setup is complete and the user starts
-the phase.
-
-Execution order:
+Active Directory ACL, Kerberos, and AD CS abuse validation completed in this order:
 
 ```text
-1. Resource-Based Constrained Delegation (RBCD)
-2. Shadow Credentials
-3. Optional later follow-up: DCSync
+1. Resource-Based Constrained Delegation (RBCD) — COMPLETE / PASS
+2. Shadow Credentials — COMPLETE / PASS; add and Certipy restoration/deletion telemetry captured
+3. CertiGhost (CVE-2026-54121) — detection and issuance-success path COMPLETE / PASS
+4. Optional later follow-up: DCSync
 ```
 
 Prepared RBCD target:
@@ -435,19 +431,78 @@ reachable service. Primary evidence candidates are:
 4624 — resulting authentication
 ```
 
-Shadow Credentials should start only after verifying that the DC supports
-Kerberos PKINIT and has a suitable KDC certificate. Record the controlled
-principal with write access, target object, and original
-`msDS-KeyCredentialLink` value before any modification. Primary evidence
-candidates are:
+## Shadow Credentials validation — 2026-07-29
+
+Technique: `T1098.005` Device Registration (Shadow Credentials). The validated
+command is `certipy shadow auto`; it added a controlled Key Credential, obtained
+a TGT through PKINIT, and restored the target's original Key Credentials.
+
+Telemetry gate and evidence:
 
 ```text
-5136 — msDS-KeyCredentialLink modification
-4768 — PKINIT/TGT request
-4624 — resulting authentication
+DC Security auditing: Event ID 5136
+Target Success SACL: msDS-KeyCredentialLink / WriteProperty
+100451 / level 15: 5136 KeyCredential value added (%%14674)
+100452 / level 5:  5136 KeyCredential value restored/deleted (%%14675)
 ```
 
-For both phases: execute one atomic test at a time, pause for dashboard
+The deployed Wazuh rule inherits native `60229` for Security Event 5136. The
+positive test produced both custom alerts: the Key Credential add and Certipy
+`shadow auto` restoration/deletion. Certipy restored the AD attribute and
+generated credential-cache artifacts were removed.
+
+Verdict: **COMPLETE / PASS**. A legitimate device-registration false-positive
+test remains optional hardening work, not a completion gate for this controlled
+attack-and-cleanup validation.
+
+Authoritative artifacts:
+
+```text
+rules/shadow_credentials_detection.xml
+tests/shadowCredentials_cmd.md
+```
+
+## Current phase: Rogue IPv6/DNS/WPAD capture validation
+
+The current lab scenario uses Kali `mitm6` on the dedicated Layer-2 lab interface to provide rogue IPv6/DHCPv6 DNS responses for `simulation.local`, with WIN01 as the scoped victim. Kali Responder is configured for scoped HTTP/WPAD authentication capture. The evidence sequence is WIN01 DHCPv6 renewal, `wpad.simulation.local` resolution to Kali, a `wpad.dat` request, and controlled NTLM challenge-response capture.
+
+Current follow-up: collect the live WIN01 and Wazuh fields, create rules only from those decoded fields, run false-positive tests, and verify Windows-side DHCPv6/DNS recovery after the capture window.
+
+## CertiGhost validation — CVE-2026-54121
+
+CertiGhost detection was first validated on 2026-07-27 through the blocked
+AD CS request path. A later controlled run with `omar.rahmani` validated the
+issuance-success path and PKINIT workflow.
+
+Live evidence:
+
+```text
+CA Security 4886: CertificateTemplate:Machine + cdc:<IPv4> + rmd:DC01.SIMULATION.LOCAL
+Wazuh 100442 / level 15: IP-literal cdc CertiGhost attempt
+CA Security 4888: policy denial 0x800706ba
+Wazuh 100443 / level 10: denied CertiGhost request
+CA Security 4887: certificate issued after cdc/rmd request
+Wazuh 100444 / level 15: CertiGhost probable issuance
+CA Sysmon 3: certsrv.exe non-loopback callback
+Wazuh 100445 / level 12: AD CS callback connection
+PoC: PKINIT and credential-cache indicators present; exit 0
+```
+
+Detection coverage is defined in `rules/certighost_detection.xml` and
+`tests/certighost_cmd.md`:
+
+```text
+100442 — IP-literal cdc chase request
+100443 — AD CS denied CertiGhost request
+100444 — AD CS certificate issuance after cdc/rmd request
+100445 — certsrv.exe non-loopback callback connection
+```
+
+Verdict: **DETECTION COMPLETE / PASS**. Both denied-request and issued-certificate
+branches were observed live. Generated current-run `GHOST*$` objects were removed
+and absence was verified; no recent `.pfx` or `.ccache` artifact remained.
+
+For all phases: execute one atomic test at a time, pause for dashboard
 confirmation after each attack command, create custom Wazuh rules only for a
 live-proven detection gap, run false-positive tests, restore modified AD
 attributes during cleanup unless the user explicitly keeps the lab condition,
@@ -498,8 +553,9 @@ Report privacy requirements are strict:
 
 Current completed technical families available as report sources are
 PowerShell, Windows Command Shell, Unix Shell, Kerberoasting, AS-REP Roasting,
-LSASS Credential Dumping, and RBCD. Their versioned rules, one-to-one command
-playbooks, and validation reports remain the authoritative technical sources.
+LSASS Credential Dumping, RBCD, Shadow Credentials, and CertiGhost. Their
+versioned rules, one-to-one command playbooks, and validation reports remain the
+authoritative technical sources.
 
 ## Collaboration terms
 
