@@ -89,8 +89,9 @@
 
   <rule id="100226" level="9">
     <if_sid>100201</if_sid>
-    <field name="command_line" type="pcre2">(?i)(?:\bcrontab\b(?!\s+(?:-l|-r)\b)|\b(?:echo|printf|tee|sed)\b.*/etc/cron(?:tab|\.d/))</field>
-    <description>Cron persistence attempt from Unix shell: $(command_line)</description>
+    <!-- Match cron writes/removals, never read-only enumeration. -->
+    <field name="command_line" type="pcre2">(?i)(?:\bcrontab\b(?!\s+-l\b)|\b(?:echo|printf)\b.*(?:&gt;&gt;|&gt;)\s*/etc/cron|\btee\b.*\s+/etc/cron|\bsed\b\s+-\S*i\S*\b.*/etc/cron|\b(?:cp|mv|install|chmod|chown)\b.*/etc/cron)</field>
+    <description>Cron persistence modification attempt from Unix shell: $(command_line)</description>
     <mitre>
       <id>T1053.003</id>
     </mitre>

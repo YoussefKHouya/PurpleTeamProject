@@ -1,0 +1,16 @@
+<group name="windows,sysmon,process_injection,">
+  <rule id="100478" level="10">
+    <if_sid>61610</if_sid>
+    <description>Sysmon CreateRemoteThread detected: source=$(win.eventdata.sourceImage), target=$(win.eventdata.targetImage), module=$(win.eventdata.startModule), function=$(win.eventdata.startFunction)</description>
+    <mitre><id>T1055</id></mitre>
+    <group>process_injection,create_remote_thread,</group>
+  </rule>
+
+  <rule id="100479" level="12">
+    <if_sid>100478</if_sid>
+    <field name="win.eventdata.startFunction" type="pcre2">(?i)^LoadLibrary(?:A|W)$</field>
+    <description>DLL injection through CreateRemoteThread and LoadLibrary: source=$(win.eventdata.sourceImage), target=$(win.eventdata.targetImage), function=$(win.eventdata.startFunction)</description>
+    <mitre><id>T1055.001</id></mitre>
+    <group>process_injection,dll_injection,create_remote_thread,</group>
+  </rule>
+</group>

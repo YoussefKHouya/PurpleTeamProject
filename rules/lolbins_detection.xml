@@ -1,0 +1,47 @@
+<group name="windows,lolbins,">
+  <!-- Direct process-create coverage for commands typed into an open CMD. -->
+  <rule id="100473" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\certutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s-(?:decode|decodehex)\b</field>
+    <description>Certutil decoding activity detected: $(win.eventdata.commandLine)</description>
+    <mitre><id>T1140</id></mitre>
+    <group>lolbin,certutil_decode,deobfuscate_decode,</group>
+  </rule>
+  <rule id="100474" level="6">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\certutil\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\s-(?:encode|encodehex)\b</field>
+    <description>Certutil encoding activity detected: $(win.eventdata.commandLine)</description>
+    <mitre><id>T1027</id></mitre>
+    <group>lolbin,certutil_encode,obfuscated_files,</group>
+  </rule>
+  <rule id="100475" level="8">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\mshta\.exe$</field>
+    <description>MSHTA signed-binary proxy execution: $(win.eventdata.commandLine)</description>
+    <mitre><id>T1218.005</id></mitre>
+    <group>lolbin,mshta,signed_binary_proxy_execution,</group>
+  </rule>
+  <rule id="100476" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\regsvr32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:\bscrobj\.dll\b|\s/(?:i|n)\b)</field>
+    <description>Regsvr32 scriptlet proxy execution: $(win.eventdata.commandLine)</description>
+    <mitre><id>T1218.010</id></mitre>
+    <group>lolbin,regsvr32,signed_binary_proxy_execution,</group>
+  </rule>
+  <rule id="100477" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\rundll32\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:\bjavascript:|\burl\.dll\s*,\s*fileprotocolhandler\b|\badvpack\.dll\s*,\s*launchinfsection\b|\bcomsvcs\.dll\b[^\r\n]*\bminidump\b)</field>
+    <description>Rundll32 suspicious proxy execution: $(win.eventdata.commandLine)</description>
+    <mitre><id>T1218.011</id></mitre>
+    <group>lolbin,rundll32,signed_binary_proxy_execution,</group>
+  </rule>
+</group>

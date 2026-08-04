@@ -553,9 +553,162 @@ Report privacy requirements are strict:
 
 Current completed technical families available as report sources are
 PowerShell, Windows Command Shell, Unix Shell, Kerberoasting, AS-REP Roasting,
-LSASS Credential Dumping, RBCD, Shadow Credentials, and CertiGhost. Their
+LSASS Credential Dumping, RBCD, Shadow Credentials, CertiGhost, WinPEAS,
+LinPEAS, LOLBins, process injection, and ARP spoofing. Their
 versioned rules, one-to-one command playbooks, and validation reports remain the
 authoritative technical sources.
+
+## Completed validation: WinPEAS and LinPEAS
+
+### WinPEAS — Windows local enumeration
+
+WinPEAS was executed as the controlled low-privilege WIN01 user. Initial direct
+execution from the user Downloads directory was live-detected; a renamed copy
+(`a.exe`) then validated the behavioral coverage. Temporary test output was
+removed after execution.
+
+Versioned files:
+
+```text
+rules/winpeas_detection.xml
+tests/winpeas_cmd.md
+tests/results/winpeas_validation_2026-08-03.md
+```
+
+Deployed manager file:
+
+```text
+/var/ossec/etc/rules/winpeas_detection.xml
+```
+
+Live-proven rules:
+
+```text
+100470 / level 10 — direct known WinPEAS executable execution
+100471 / level 10 — executable from Downloads, AppData, or Temp spawns a
+                    discovery child (whoami, systeminfo, tasklist, schtasks,
+                    ipconfig, net, netsh, wmic, or reg)
+```
+
+Rule `100470` is a high-confidence known-tool indicator and is expected to miss
+a renamed executable. Rule `100471` is the rename-resistant layer: it fired for
+`Downloads\\a.exe` spawning `systeminfo.exe`; `netsh.exe` was added after live
+telemetry showed WinPEAS also queried wireless profiles. Do not add filename
+masquerade special cases. The attempted multi-event correlation rule `100472`
+was removed because actual WinPEAS telemetry produced only two matching
+children, more than two minutes apart; it was not evidence-backed.
+
+### LinPEAS — Linux local enumeration
+
+LinPEAS was executed on Linux agent `003` as the controlled low-privilege user.
+The bounded run produced 1,288 lines / 101,270 bytes. Download script and output
+were stored temporarily under `/tmp` and removed after the run.
+
+No LinPEAS-specific detection rule is required. Existing generic Unix-shell
+rules caught the full rename-resistant chain:
+
+```text
+100203 / level 7  — remote content retrieval
+100205 / level 7  — executable permission added
+100207 / level 8  — script executed from temporary directory
+100220 / level 12 — downloaded content passed to a shell for execution
+```
+
+Manager `alerts.json` contained the Linux agent alerts. LinPEAS also produced
+fresh rule `203` queue-full events, so execution and the observed generic
+detection chain passed, but exhaustive telemetry integrity remains constrained.
+Do not call the run evidence-clean until a later rerun has no fresh rule `203`.
+Use `tests/linpeas_cmd.md` and
+`tests/results/linpeas_validation_2026-08-04.md` as the operational record.
+LinPEAS exposed false-positive noise in rule `100226`: read-only
+cron enumeration (`cat`, `ls`, `grep`, `sed`) was initially classified as cron
+persistence. Rule `100226` was tightened and redeployed to match cron write,
+removal, and permission-change semantics rather than read-only enumeration. Its
+manager syntax validation and reload passed. Live false-positive and controlled
+positive validation remain required before declaring that individual rule final.
+
+## Completed validation: LOLBins
+
+Controlled local tests on WIN01 used only signed Windows binaries and harmless
+temporary local files. CertUtil encode/decode, MSHTA, Regsvr32 scriptlet proxy,
+and Rundll32 `LaunchINFSection` behavior all generated live custom alerts:
+
+```text
+100473 / level 8  — CertUtil decode
+100474 / level 6  — CertUtil encode
+100475 / level 8  — MSHTA execution
+100476 / level 10 — Regsvr32 scriptlet proxy
+100477 / level 10 — Rundll32 proxy execution
+```
+
+Versioned sources:
+
+```text
+rules/lolbins_detection.xml
+tests/lolbin_cmd.md
+tests/results/lolbins_validation_2026-08-04.md
+```
+
+Verdict: **PASS**. Temporary HTA, SCT, INF, encoded, decoded, and marker files
+were removed. No remote payload was used.
+
+## Completed validation: Process injection
+
+The controlled script injected the path of signed local `version.dll` into a
+temporary Notepad process and invoked `LoadLibraryW` through
+`CreateRemoteThread`. It created no callback or persistence and closed/freed
+resources before terminating Notepad.
+
+Correct live Wazuh chain:
+
+```text
+60000 -> 60004 -> 61600 -> 61610 -> 100478 -> 100479
+```
+
+The final live alert was `100479` / level 12 at
+`2026-08-04T12:56:43.894+0000` on WIN01 agent `004`. Archive JSON replay is
+not equivalent to the live EventChannel chain.
+
+Versioned sources:
+
+```text
+rules/process_injection_detection.xml
+tests/process_injection_cmd.md
+tests/process_injection_event8.ps1
+tests/results/process_injection_validation_2026-08-04.md
+```
+
+Verdict: **PASS** for trigger, Sysmon Event 8, manager alert, delivery path, and
+cleanup.
+
+## Completed validation: ARP spoofing
+
+A bounded one-way ARP poison on the direct `172.16.2.0/24` Layer-2 segment
+remapped watched peer `172.16.2.17` from approved MAC
+`08-00-27-0C-FE-D8` to Kali MAC `08-00-27-D3-7C-3B`. WIN01 watcher
+`WazuhArpNeighborWatcher` emitted native Windows Application events through
+provider `WazuhArpWatcher`; Wazuh uses native parent `60600`.
+
+Live alerts:
+
+```text
+100491 / level 12 / T1557.002 — poisoning detected
+2026-08-04T14:48:20.517+0000
+100493 / level 5 — approved mapping restored
+2026-08-04T14:48:20.523+0000
+```
+
+Versioned sources:
+
+```text
+agents/windows/arp_neighbor_watcher.ps1
+rules/arp_spoofing_detection.xml
+tests/arp_spoofing_cmd.md
+tests/results/arp_spoofing_validation_2026-08-04.md
+```
+
+Verdict: **PASS** for direct-L2 simulation, watcher collection, live Wazuh
+alerting, and verified restoration.
 
 ## Collaboration terms
 

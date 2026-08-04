@@ -20,10 +20,16 @@ Run the downloaded executable from the current user Downloads directory:
 
 ```text
 100470 / level 10 — named WinPEAS executable execution
-100471 / level 5  — user-writable executable spawned a Windows discovery binary
+100471 / level 10 — user-writable executable spawned a Windows discovery binary
 ```
 
 A renamed executable is expected to bypass `100470` but still produce `100471` when it spawns a monitored discovery binary.
+
+Verified evidence is recorded in:
+
+```text
+tests/results/winpeas_validation_2026-08-03.md
+```
 
 ## Cleanup
 
