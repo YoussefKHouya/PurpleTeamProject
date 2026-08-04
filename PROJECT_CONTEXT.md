@@ -462,11 +462,21 @@ rules/shadow_credentials_detection.xml
 tests/shadowCredentials_cmd.md
 ```
 
-## Current phase: Rogue IPv6/DNS/WPAD capture validation
+## Completed validation: Rogue IPv6/DNS/WPAD capture
 
-The current lab scenario uses Kali `mitm6` on the dedicated Layer-2 lab interface to provide rogue IPv6/DHCPv6 DNS responses for `simulation.local`, with WIN01 as the scoped victim. Kali Responder is configured for scoped HTTP/WPAD authentication capture. The evidence sequence is WIN01 DHCPv6 renewal, `wpad.simulation.local` resolution to Kali, a `wpad.dat` request, and controlled NTLM challenge-response capture.
+The controlled lab scenario used Kali `mitm6` on the dedicated Layer-2 interface to provide scoped rogue IPv6/DHCPv6 DNS behavior for `simulation.local`, with WIN01 as the victim. Responder supplied scoped HTTP/WPAD handling. The completed simulation produced DHCPv6 renewal, `wpad.simulation.local` resolution activity, a `wpad.dat` request, and controlled NTLM challenge-response capture. Attack processes were bounded and Windows network state was restored afterward.
 
-Current follow-up: collect the live WIN01 and Wazuh fields, create rules only from those decoded fields, run false-positive tests, and verify Windows-side DHCPv6/DNS recovery after the capture window.
+Wazuh archives confirmed WIN01 DNS Client Operational Event `3020` with `win.eventdata.queryName=wpad.simulation.local`. Final rules use native Windows informational parent `60009`: `100460` records DHCPv6 client configuration Event `50093`, while `100461` raises a level-10 alert for the exact controlled WPAD response and maps to MITRE ATT&CK `T1557`. XML parsing, Wazuh syntax validation, manager health, and deployed/local SHA-256 equality passed.
+
+Phase closure carries one explicit limitation: WIN01 agent `004` was disconnected during final review, so a fresh post-fix `100461` alert and final false-positive replay were not live-proven. Historical raw telemetry and the deployed rule artifact are preserved without misrepresenting this as fresh Dashboard proof.
+
+Artifacts:
+
+```text
+rules/ipv6_wpad_detection.xml
+tests/ipv6_wpad_detection_cmd.md
+tests/results/ipv6_wpad_validation_2026-08-04.md
+```
 
 ## CertiGhost validation — CVE-2026-54121
 

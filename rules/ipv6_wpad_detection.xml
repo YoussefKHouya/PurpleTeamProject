@@ -2,7 +2,7 @@
 
   <!-- DHCPv6 client configuration event observed on WIN01. -->
   <rule id="100460" level="3">
-    <decoded_as>windows_eventchannel</decoded_as>
+    <if_sid>60009</if_sid>
     <field name="win.system.providerName">^Microsoft-Windows-Dhcp-Client$</field>
     <field name="win.system.eventID">^50093$</field>
     <field name="win.system.channel">^Microsoft-Windows-Dhcp-Client/Operational$</field>
@@ -12,9 +12,9 @@
 
   <!-- Exact WPAD lookup observed during the controlled lab scenario. -->
   <rule id="100461" level="10">
-    <decoded_as>windows_eventchannel</decoded_as>
+    <if_sid>60009</if_sid>
     <field name="win.system.providerName">^Microsoft-Windows-DNS-Client$</field>
-    <field name="win.system.eventID">^3008$</field>
+    <field name="win.system.eventID">^3020$</field>
     <field name="win.system.channel">^Microsoft-Windows-DNS-Client/Operational$</field>
     <field name="win.eventdata.queryName">^wpad\.simulation\.local$</field>
     <description>WPAD DNS lookup: $(win.eventdata.queryName) on $(win.system.computer)</description>

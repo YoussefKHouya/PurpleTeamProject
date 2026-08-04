@@ -55,7 +55,7 @@ Resolve-DnsName wpad.simulation.local
 
 | Source | Provider | Event ID | Field |
 |---|---|---:|---|
-| DNS Client Operational | `Microsoft-Windows-DNS-Client` | `3008` | `win.eventdata.queryName=wpad.simulation.local` |
+| DNS Client Operational | `Microsoft-Windows-DNS-Client` | `3020` | `win.eventdata.queryName=wpad.simulation.local` |
 | DHCP Client Operational | `Microsoft-Windows-Dhcp-Client` | `50093` | `win.system.channel=Microsoft-Windows-Dhcp-Client/Operational` |
 
 ## Expected Wazuh evidence
