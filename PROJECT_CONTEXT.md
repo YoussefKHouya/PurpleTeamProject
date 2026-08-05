@@ -940,6 +940,19 @@ embedded into command or script-block telemetry to force the bind. Security 4688
 record `35217` reached Wazuh rule `100134`, level 11. No queue-loss rule `203`
 appeared; false-positive test and cleanup passed. Verdict: **PARTIAL**.
 
+A separate approved CredSSP retest preserved that original verdict and solved
+the double hop. A native CredSSP session on WIN01 authenticated as
+`SIMULATION\\yassine.karimi` with Kerberos and read LDAP RootDSE
+`DC=SIMULATION,DC=LOCAL`. The bounded `-UseWindowsAuth -OPSEC -Module Domain`
+run connected to `DC01.SIMULATION.LOCAL`, found one domain controller, and
+analyzed LDAP-signing/channel-binding GPO data. Actual PowerShell record `96416`
+reached native rule `91823`, level 14. New semantic rule `100520`, level 14,
+was validated by live no-LDAP synthetic positive record `96942`; the
+documentation-only control stayed quiet. Client/server CredSSP, exact fresh-
+credential delegation policy, adPEAS files, output, and ephemeral Kali tooling
+were removed. Full evidence is in
+`tests/results/adpeas_credssp_retest_2026-08-05.md`. Retest verdict: **PASS**.
+
 ### Seatbelt
 
 `GhostPack/Seatbelt` commit `392171df84472591d4eae7ebd5b1cdc96ba91377`

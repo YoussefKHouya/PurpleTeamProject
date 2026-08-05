@@ -1,0 +1,14 @@
+<group name="windows,powershell,adpeas,active_directory_discovery,">
+  <!-- Bounded adPEAS domain enumeration invocation; filename-independent. -->
+  <rule id="100520" level="14">
+    <if_sid>91823</if_sid>
+    <field name="win.system.eventID">^4104$</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\bInvoke-adPEAS\b\s+-Domain\s+(?:['\"])?[^\s'\"]+(?:['\"])?\s+-UseWindowsAuth\s+-OPSEC\s+-Module\s+Domain\b</field>
+    <description>adPEAS bounded Active Directory domain enumeration invoked through remote PowerShell with Windows authentication and OPSEC mode</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1482</id>
+    </mitre>
+    <group>adpeas_domain_enumeration,high_confidence,</group>
+  </rule>
+</group>

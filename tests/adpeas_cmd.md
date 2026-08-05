@@ -36,15 +36,16 @@ Remote WinRM may hit the credential-delegation/double-hop boundary. If authentic
 
 ```text
 Security 4688 / PowerShell under Yassine
-PowerShell Operational 4104 where available
-Wazuh generic PowerShell/process rules
+PowerShell Operational 4104
+Wazuh native remote PowerShell rule `91823`
+Wazuh semantic adPEAS rule `100520`
 Defender 1116/1117 and Wazuh 62123/62124 only if prevention occurs
 ```
 
 Validated Dashboard filter for this run:
 
 ```text
-agent.id:"004" AND rule.id:"100134" AND data.win.system.eventRecordID:"35217"
+agent.id:"004" AND rule.id:"100520"
 ```
 
 ## False-positive control

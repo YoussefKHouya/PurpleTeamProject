@@ -26,11 +26,12 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
 | `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
 | `rules/tcp_scan_detection.xml` | `tests/tcp_scan_watcher_cmd.md` |
+| `rules/adpeas_detection.xml` | `tests/adpeas_cmd.md` |
 
 PowerView, SharpView, and PowerSploit/PowerUp use the proven native Defender
-rules `62123`/`62124`, so they have no custom-rule XML. adPEAS currently uses
-generic PowerShell/process telemetry, while Seatbelt stopped at its source-build
-gate. Their telemetry configuration and playbooks are:
+rules `62123`/`62124`, so they have no custom-rule XML. adPEAS uses PowerShell
+Operational telemetry plus custom semantic rule `100520`; Seatbelt stopped at
+its source-build gate. Their telemetry configuration and playbooks are:
 
 ```text
 agents/windows/workstation-sysmon-agent.conf
@@ -66,7 +67,7 @@ LSASS credential dumping:   validated and tuned
 NTDS IFM extraction:        validated; stdin limitation documented
 PowerView reconnaissance:   detection validated; execution blocked by Defender
 SharpView enumeration:      prevention validated; GUI-allowed execution pass, enumeration partial
-adPEAS enumeration:         partial; import detected, LDAP blocked by WinRM delegation
+adPEAS enumeration:         standard WinRM partial; CredSSP retest + LDAP + rule 100520 validated
 Seatbelt host recon:        build blocked; no executable produced
 PowerSploit PowerUp:        detection validated; execution blocked by Defender
 Masscan full-port scan:     execution + packet proof + pktmon/Wazuh detection validated
