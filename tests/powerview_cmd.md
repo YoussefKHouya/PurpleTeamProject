@@ -78,9 +78,23 @@ if ($Hash -ne '507e8666c239397561c58609f7ea569c9c49ddbb900cd260e7e42b02d03cfd87'
     Remove-Item $Path -Force
     throw "PowerView hash mismatch: $Hash"
 }
+
+# Process scope only; do not change user or machine policy.
+Set-ExecutionPolicy -Scope Process Bypass -Force
+. $Path
+
+$Domain = Get-Domain
+$User = Get-DomainUser -Identity 'yassine.karimi' -Properties samaccountname
+$Group = Get-DomainGroup -Identity 'Domain Users' -Properties samaccountname
+$Trusts = @(Get-DomainTrust)
+$AclSample = @(Get-DomainObjectAcl -Identity 'yassine.karimi' | Select-Object -First 5)
 ```
 
-Hard stop when Defender blocks retrieval or removes the file. Do not add an exclusion, restore the threat, obfuscate the script, disable AMSI, or disable Defender merely to force execution. If retrieval succeeds, invoke only the reviewed read-only functions and summarize results; do not preserve bulk AD output.
+Hard stop when Defender blocks retrieval, script import, or removes the file. Do
+not add an exclusion, restore the threat, obfuscate the script, disable AMSI, or
+disable Defender merely to force execution. Process-scope execution policy does
+not persist. If import succeeds, invoke only the reviewed read-only functions and
+summarize results; do not preserve bulk AD output.
 
 ## Expected evidence
 
@@ -98,7 +112,7 @@ Defender telemetry after adding its Operational channel:
 ```text
 1116 — threat detection
 1117 — remediation
-Threat Name: Trojan:PowerShell/Powersploit.G
+Threat Name: Trojan:PowerShell/Powersploit.G or HackTool:PowerShell/PowerView
 Native Wazuh rules: 62123 detection, 62124 action
 ```
 
@@ -108,6 +122,7 @@ Dashboard filters:
 agent.id:"004" AND rule.id:"100110" AND data.win.system.eventRecordID:"34415"
 agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1235"
 agent.id:"004" AND rule.id:"62124" AND data.win.system.eventRecordID:"1237"
+agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1245"
 ```
 
 Do not claim PowerView reconnaissance executed unless the pinned file remained present, loaded successfully, and the selected functions returned results.

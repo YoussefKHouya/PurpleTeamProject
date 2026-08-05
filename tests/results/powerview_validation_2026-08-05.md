@@ -6,13 +6,14 @@
 Source pin and review:                 PASS
 Low-privilege Yassine preflight:       PASS
 LDAP read preflight:                   PASS
-PowerView staging:                     BLOCKED by Defender
-PowerView function execution:          NOT REACHED
+PowerView staging and hash check:      PASS on final rerun
+PowerView script import:               BLOCKED by Defender
+PowerView Get-* execution:             NOT REACHED
 Defender prevention:                   PASS
 Wazuh generic process alert:           PASS
 Defender Operational collection:       PASS after telemetry update
 Native Wazuh Defender alert:           PASS
-Dashboard confirmation:                PASS for rule 100110 / record 34415
+Dashboard confirmation:                PASS for 100110/34415 and 62123/1245
 False-positive test:                   PASS
 Cleanup and service recovery:          PASS
 Overall: detection validation COMPLETE; reconnaissance execution BLOCKED
@@ -112,6 +113,38 @@ Manager archives received all three with exact decoded fields. Native Wazuh hand
 
 Packaged descriptions omit the threat name and carry no MITRE mapping, but the alert level and exact decoded `win.eventdata.threat Name` field preserve high-confidence evidence.
 
+## Final screenshot rerun
+
+At the operator's request, the same pinned test was rerun once for a clean
+Dashboard screenshot. Staging completed as Yassine and the downloaded file hash
+matched the pinned value. The default execution policy first prevented import.
+The retry changed only the current PowerShell process scope to `Bypass`; no user
+or machine policy, Defender control, AMSI setting, exclusion, or allow action was
+changed.
+
+Defender then blocked PowerView at script import before any selected `Get-*`
+function ran. Fresh endpoint and indexed evidence:
+
+```text
+Staging UTC: 2026-08-05T15:08:03.8759633Z
+Identity: SIMULATION\yassine.karimi
+SHA-256: 507e8666c239397561c58609f7ea569c9c49ddbb900cd260e7e42b02d03cfd87
+1116 / record 1243 — HackTool:PowerShell/InvKerber.B
+1116 / record 1245 — HackTool:PowerShell/PowerView
+Wazuh: rule 62123 / level 12
+Indexed timestamp: 2026-08-05T15:08:58.251Z
+```
+
+The operator confirmed record `1245` in Dashboard and captured the screenshot:
+
+```text
+agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1245"
+```
+
+This is stronger attribution than the first generic encoded-PowerShell alert.
+Built-in rule `62123` is sufficient for alerting because the decoded event retains
+the exact `HackTool:PowerShell/PowerView` threat name. No custom rule is required.
+
 ## Rejected custom-rule attempt
 
 Candidate children `100494` and `100495` matched the dynamic Defender fields containing spaces. Local XML parsing and `/var/ossec/bin/wazuh-analysisd -t` passed. Archived replay decoded as generic JSON and could not validate the live `62123/62124` parent chain.
@@ -155,4 +188,8 @@ BlueHammer artifacts, its exact threat allowance, one-shot task, and RDP-related
 
 ## Limitation
 
-Because Defender prevented staging, no PowerView function returned domain, group, trust, or ACL data. Result must remain `execution BLOCKED`, not successful reconnaissance. Current Wazuh evidence is prevention-backed Defender telemetry plus generic PowerShell process telemetry; no rename-resistant behavioral attribution to PowerView was proven.
+Because Defender prevented script import, no PowerView function returned domain,
+group, trust, or ACL data. Result remains `execution BLOCKED`, not successful
+reconnaissance. Wazuh now has exact Defender attribution to
+`HackTool:PowerShell/PowerView`; rename-resistant behavioral attribution to the
+underlying LDAP discovery actions was not proven because those actions never ran.

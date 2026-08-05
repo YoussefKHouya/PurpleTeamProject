@@ -858,11 +858,14 @@ with `PowerView.ps1` SHA-256
 Selected domain, user, group, trust, and exact-object ACL functions were reviewed
 as read-only; mutating functions were not invoked.
 
-Defender prevented the script from remaining on disk and classified the command
-as `Trojan:PowerShell/Powersploit.G`. Therefore PowerView functions did not run
-and no AD reconnaissance output was produced. Security 4688 record `34415`
-proved the Yassine launch under `wsmprovhost.exe`; Wazuh rule `100110`, level 10,
-was indexed and the operator confirmed it in Dashboard.
+The initial attempt was blocked before the script remained on disk and classified
+as `Trojan:PowerShell/Powersploit.G`. Security 4688 record `34415` proved the
+Yassine launch under `wsmprovhost.exe`; Wazuh rule `100110`, level 10, was indexed
+and the operator confirmed it in Dashboard. On the final screenshot rerun, staging
+and pinned hash verification passed. The default execution policy first blocked
+import; a process-scope-only `Bypass` retry then let Defender inspect the script.
+Defender blocked import as `HackTool:PowerShell/PowerView` before any selected
+`Get-*` function ran, so no AD reconnaissance output was produced.
 
 A real telemetry gap was fixed: WIN01 did not collect
 `Microsoft-Windows-Windows Defender/Operational`. That channel was added to the
@@ -874,6 +877,15 @@ Wazuh rules handled them as:
 ```text
 62123 / level 12 — PowerSploit-class Defender detection
 62124 / level 3  — Defender remediation / Remove
+```
+
+The final screenshot event was Defender 1116 record `1245`, indexed at
+`2026-08-05T15:08:58.251Z` under native Wazuh rule `62123`, level 12, with exact
+decoded threat name `HackTool:PowerShell/PowerView`. The operator confirmed and
+captured it using:
+
+```text
+agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1245"
 ```
 
 Candidate custom children `100494`/`100495` passed XML and `analysisd -t`, but
