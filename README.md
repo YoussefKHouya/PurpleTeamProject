@@ -26,6 +26,14 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
 | `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
 
+PowerView uses native Defender rules `62123`/`62124`, so it has no custom-rule
+XML. Its telemetry configuration and playbook are:
+
+```text
+agents/windows/workstation-sysmon-agent.conf
+tests/powerview_cmd.md
+```
+
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
 Wazuh rule IDs, local telemetry checks, dashboard filters, false-positive
 controls where applicable, and cleanup.
@@ -43,6 +51,7 @@ Kerberoasting:              validated
 AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
 NTDS IFM extraction:        validated; stdin limitation documented
+PowerView reconnaissance:   detection validated; execution blocked by Defender
 ```
 
 ## Workflow

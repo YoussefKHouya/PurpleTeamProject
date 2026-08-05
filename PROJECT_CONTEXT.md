@@ -847,16 +847,52 @@ Do not perform further blind rollback/rerun attempts. Revisit only as a separate
 source-patching exercise with bounded thread waits, cancellation, backoff, and a
 verified VSS trigger.
 
-## Next phase: Tier 3 medium-high attacks
+## Completed detection validation: PowerView reconnaissance
 
-Proceed through Tier 3 one atomic technique at a time. The first selected test is
-PowerView reconnaissance (`T1069.002`) from WIN01 as the ordinary domain user
-`SIMULATION\yassine.karimi`. Keep the initial test read-only and bounded: domain,
-user, group, trust, and ACL discovery only; no AD object changes, credential use,
-or chaining. Preserve Security 4688, PowerShell Operational 4104 where available,
-Defender outcome, native Wazuh rule/level, and exact process ancestry before any
-custom-rule design. Pause for Dashboard confirmation after the single positive
-test, then run false-positive tests before closure.
+Tier 3 medium-high PowerView reconnaissance (`T1069.002`) was tested from WIN01
+as ordinary domain user `SIMULATION\yassine.karimi`. The token was medium
+integrity and not administrative; LDAP RootDSE reads passed. Official PowerView
+was pinned to PowerSploit commit `d943001a7defb5e0d1657085a77a0e78609be58f`,
+with `PowerView.ps1` SHA-256
+`507e8666c239397561c58609f7ea569c9c49ddbb900cd260e7e42b02d03cfd87`.
+Selected domain, user, group, trust, and exact-object ACL functions were reviewed
+as read-only; mutating functions were not invoked.
+
+Defender prevented the script from remaining on disk and classified the command
+as `Trojan:PowerShell/Powersploit.G`. Therefore PowerView functions did not run
+and no AD reconnaissance output was produced. Security 4688 record `34415`
+proved the Yassine launch under `wsmprovhost.exe`; Wazuh rule `100110`, level 10,
+was indexed and the operator confirmed it in Dashboard.
+
+A real telemetry gap was fixed: WIN01 did not collect
+`Microsoft-Windows-Windows Defender/Operational`. That channel was added to the
+dedicated `workstation-sysmon` group and endpoint `ossec.log` confirmed event
+`1951` analysis. One bounded replay produced Defender records `1235`/`1236`
+(Event 1116) and `1237` (Event 1117), all received in manager archives. Native
+Wazuh rules handled them as:
+
+```text
+62123 / level 12 — PowerSploit-class Defender detection
+62124 / level 3  — Defender remediation / Remove
+```
+
+Candidate custom children `100494`/`100495` passed XML and `analysisd -t`, but
+caused manager startup to exceed its timeout. They were immediately removed;
+manager health and agent `004` Active state were restored. The repository retains
+no unvalidated custom PowerView rule. Native `62123`/`62124` are the proven
+baseline. A harmless Yassine string containing `PowerView` generated zero
+Defender `1116`/`1117` and zero Wazuh `62123`/`62124`, passing the false-positive
+test.
+
+Cleanup passed for PowerView artifacts and tasks. BlueHammer retained state was
+not touched. Verdict: **DETECTION VALIDATION COMPLETE / RECONNAISSANCE EXECUTION
+BLOCKED**. Authoritative artifacts:
+
+```text
+agents/windows/workstation-sysmon-agent.conf
+tests/powerview_cmd.md
+tests/results/powerview_validation_2026-08-05.md
+```
 
 ## Collaboration terms
 
