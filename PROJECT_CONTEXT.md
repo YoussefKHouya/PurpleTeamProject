@@ -783,19 +783,80 @@ tests/results/ntds_credential_dump_validation_2026-08-05.md
 Verdict: **COMPLETE / PASS** for simulation, telemetry, custom alert,
 Dashboard/index delivery, and cleanup/recovery.
 
-## Active/incomplete validation: BlueHammer CVE-2026-33825
+## Closed partial validation: BlueHammer CVE-2026-33825
 
-BlueHammer is separate from NTDS and is **not complete**. WIN01 was version-
-applicable after snapshot rollback (`4.18.1909.6`, below fixed boundary
-`4.18.26030.3011`). Defender blocked the official release before process
-creation. A later bounded manual launch with `--no-spawn --log-steps` started but
-failed during Windows Update search with `0x800B0109` before exploit execution.
-Live TLS inspection showed FortiGate captive interception presenting its appliance
-certificate for Microsoft Update, with both untrusted-root and hostname-mismatch
-errors. No successful protected-file copy, privilege escalation, or final Wazuh
-impact evidence is claimed. Resume only after Microsoft Update trust/connectivity
-works without interception; keep bounded flags and clean any protected-file copy
-without inspecting it.
+BlueHammer is separate from NTDS and is **closed as PARTIAL / exploit not
+proven**. WIN01 was repeatedly restored to Defender platform `4.18.1909.6`, below
+the fixed boundary `4.18.26030.3011`. Microsoft Update trust/connectivity was
+repaired after an earlier `0x800B0109` failure caused by FortiGate TLS
+interception. All later attempts used the source-reviewed bounded flags
+`--no-spawn --log-steps`; no SYSTEM shell, password change, credential parsing,
+or persistence branch was permitted.
+
+The final controlled launch ran through an interactive, limited task as
+`SIMULATION\yassine.karimi`. Security Event 4688 record `34029` at
+`2026-08-05T14:01:43.1017096Z` preserves the exact executable and command line:
+
+```text
+SNEK_BlueWarHammer.exe --no-spawn --log-steps
+```
+
+Validated gates:
+
+```text
+Defender vulnerable-version applicability: PASS
+Low-privilege interactive process start:   PASS
+Windows Update search/download/install:    PASS
+EICAR and oplock trigger stage:             PASS
+New VSS path acquisition:                  FAIL / HANG
+Protected-file access result:               NOT PROVEN
+Privilege escalation:                       NOT PROVEN
+```
+
+One run failed immediately with `Failed to get new volume shadow copy path`.
+The final run entered a high-CPU finder loop with VSS stopped and zero shadow
+copies; the bounded task was terminated and the process was verified absent.
+Source comparison against both the SNEK v1.0.1 tree and the older Church of
+Malware `Nightmare_Eclipse/BlueHammer` tree confirmed the same defects: an
+unbounded `goto scanagain` shadow-object loop and an immediate
+`GetExitCodeThread` check that can misclassify `STILL_ACTIVE (259)`. The older
+repository explicitly warns that PoC bugs may prevent execution and is not a
+fixed replacement.
+
+Final observed safety state after termination:
+
+```text
+BlueHammer process: absent
+Protected-file result: absent
+VSS service: stopped
+Shadow copies: 0
+Defender platform after update: 4.18.26070.9 (patched)
+Real-time / behavior / IOAV / tamper protection: enabled
+WazuhSvc: running
+```
+
+At the user's explicit request, the prepared BlueHammer lab is intentionally
+retained rather than cleaned. Retained state includes the `BlueHammerLab`
+directory and helper scripts, exact Defender threat-ID allowance `2147966615`
+(action `6`), one-shot task `WazuhLab-BlueHammer-OneShot` in Ready state,
+temporary RDP enablement, and Yassine membership in local Remote Desktop Users.
+These retained controls can contaminate later telemetry and must not be described
+as cleanup PASS. Final indexed Wazuh evidence for record `34029` was not
+retrieved; endpoint evidence is authoritative for the final process execution.
+Do not perform further blind rollback/rerun attempts. Revisit only as a separate
+source-patching exercise with bounded thread waits, cancellation, backoff, and a
+verified VSS trigger.
+
+## Next phase: Tier 3 medium-high attacks
+
+Proceed through Tier 3 one atomic technique at a time. The first selected test is
+PowerView reconnaissance (`T1069.002`) from WIN01 as the ordinary domain user
+`SIMULATION\yassine.karimi`. Keep the initial test read-only and bounded: domain,
+user, group, trust, and ACL discovery only; no AD object changes, credential use,
+or chaining. Preserve Security 4688, PowerShell Operational 4104 where available,
+Defender outcome, native Wazuh rule/level, and exact process ancestry before any
+custom-rule design. Pause for Dashboard confirmation after the single positive
+test, then run false-positive tests before closure.
 
 ## Collaboration terms
 
