@@ -906,6 +906,70 @@ tests/powerview_cmd.md
 tests/results/powerview_validation_2026-08-05.md
 ```
 
+## Tier 3 enumeration batch — 2026-08-05
+
+Four additional medium-high tests were processed atomically after PowerView. No
+endpoint protection was disabled and no Defender exclusion was added.
+
+### SharpView
+
+Official `tevora-threat/SharpView` commit
+`b60456286b41bb055ee7bc2a14d645410cca9b74` was pinned; compiled artifact
+SHA-256 was `c0621954bd329b5cabe45e92b31053627c27fa40853beb2cce2734fa677ffd93`.
+Defender blocked the file write before low-privilege execution as
+`VirTool:MSIL/Menace.C!MTB`. Defender 1116 record `1270` reached Wazuh rule
+`62123`, level 12. Harmless string control produced zero matching Defender
+events. Cleanup and endpoint health passed. Verdict: **DETECTION COMPLETE /
+ENUMERATION BLOCKED**.
+
+### adPEAS
+
+`61106960/adPEAS` commit `1ea06f1d2dc92152b5aaeca6eacff24dd096d82e`
+was pinned. `adPEAS_min.ps1` SHA-256 was
+`7d7c1535ef4d33f24b738509af3962500453070ae94b0cbb23927c6e65d0a10b`.
+The module imported under ordinary user `SIMULATION\\yassine.karimi`, but its
+Windows-auth LDAP session hit the WinRM delegation boundary. No credentials were
+embedded into command or script-block telemetry to force the bind. Security 4688
+record `35217` reached Wazuh rule `100134`, level 11. No queue-loss rule `203`
+appeared; false-positive test and cleanup passed. Verdict: **PARTIAL**.
+
+### Seatbelt
+
+`GhostPack/Seatbelt` commit `392171df84472591d4eae7ebd5b1cdc96ba91377`
+was transferred as pinned source and built once directly on WIN01. MSBuild failed
+with `MSB3645/MSB3644` because the .NET Framework 3.5 SP1 targeting pack/reference
+assemblies were absent. No executable was produced; no unofficial binary or old
+SDK was installed. Source was removed and endpoint health passed. Verdict:
+**BUILD BLOCKED / EXECUTION NOT REACHED**.
+
+### PowerSploit PowerUp
+
+`PowerShellMafia/PowerSploit` commit
+`d943001a7defb5e0d1657085a77a0e78609be58f` was pinned; `Privesc/PowerUp.ps1`
+SHA-256 was `9d59d4c128570eb80c0e8d13e2185030f93d965278b203c91dd196b2e1d3cd22`.
+Defender blocked staging before import as `HackTool:PowerShell/EventVwrBypass`.
+Defender 1116 record `1284` reached Wazuh rule `62123`, level 12. Native
+registry/service false-positive tests produced zero matching Defender events;
+no queue-loss rule `203` appeared. Cleanup passed. Verdict: **DETECTION COMPLETE
+/ EXECUTION BLOCKED**.
+
+Authoritative artifacts:
+
+```text
+tests/sharpview_cmd.md
+tests/results/sharpview_validation_2026-08-05.md
+tests/adpeas_cmd.md
+tests/results/adpeas_validation_2026-08-05.md
+tests/seatbelt_cmd.md
+tests/results/seatbelt_validation_2026-08-05.md
+tests/powersploit_powerup_cmd.md
+tests/results/powersploit_powerup_validation_2026-08-05.md
+```
+
+Dashboard/index API verification remains unavailable for these new events because
+the available dashboard credential was rejected by the indexer API. Manager
+`alerts.json` evidence is proven. Do not report this as indexed Dashboard proof.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”

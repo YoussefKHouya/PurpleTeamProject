@@ -26,12 +26,18 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
 | `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
 
-PowerView uses native Defender rules `62123`/`62124`, so it has no custom-rule
-XML. Its telemetry configuration and playbook are:
+PowerView, SharpView, and PowerSploit/PowerUp use the proven native Defender
+rules `62123`/`62124`, so they have no custom-rule XML. adPEAS currently uses
+generic PowerShell/process telemetry, while Seatbelt stopped at its source-build
+gate. Their telemetry configuration and playbooks are:
 
 ```text
 agents/windows/workstation-sysmon-agent.conf
 tests/powerview_cmd.md
+tests/sharpview_cmd.md
+tests/adpeas_cmd.md
+tests/seatbelt_cmd.md
+tests/powersploit_powerup_cmd.md
 ```
 
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
@@ -52,6 +58,10 @@ AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
 NTDS IFM extraction:        validated; stdin limitation documented
 PowerView reconnaissance:   detection validated; execution blocked by Defender
+SharpView enumeration:      detection validated; execution blocked by Defender
+adPEAS enumeration:         partial; import detected, LDAP blocked by WinRM delegation
+Seatbelt host recon:        build blocked; no executable produced
+PowerSploit PowerUp:        detection validated; execution blocked by Defender
 ```
 
 ## Workflow
