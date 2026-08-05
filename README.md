@@ -24,6 +24,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/kerberoasting_detection.xml` | `tests/kerberoasting_cmd.md` |
 | `rules/asrep_roasting_detection.xml` | `tests/asrep_cmd.md` |
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
+| `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
 
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
 Wazuh rule IDs, local telemetry checks, dashboard filters, false-positive
@@ -41,6 +42,7 @@ Unix Shell execution:       validated
 Kerberoasting:              validated
 AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
+NTDS IFM extraction:        validated; stdin limitation documented
 ```
 
 ## Workflow
@@ -54,7 +56,7 @@ LSASS credential dumping:   validated and tuned
 7. Validate syntax and duplicate IDs locally.
 8. Deploy with backup and run Wazuh configuration tests.
 9. Restart services only after validation passes.
-10. Live-retest positive cases and negative controls.
+10. Live-retest positive cases and false-positive tests.
 11. Commit reviewed rules, telemetry config, and evidence.
 
 ## Privacy

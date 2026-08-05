@@ -720,6 +720,83 @@ tests/results/arp_spoofing_validation_2026-08-04.md
 Verdict: **PASS** for direct-L2 simulation, watcher collection, live Wazuh
 alerting, and verified restoration.
 
+## Completed validation: NTDS IFM extraction
+
+Technique `T1003.003` was completed on DC01 using built-in `ntdsutil.exe` Install
+From Media. Commands were delivered over stdin; the successful Security Event
+4688 therefore contained only the executable path and omitted IFM subcommands.
+No NTDS database, registry-hive contents, credential material, hashes, or
+passwords were opened, transferred, or committed.
+
+The first bounded attempt was blocked by Microsoft Defender as
+`Trojan:Win32/Commando.A!ml`. Defender Events `1116` and `1117` confirmed
+prevention, native Wazuh rule `67027` recorded generic process telemetry at level
+3, and no IFM output was created. This blocked attempt is separate from the later
+successful run.
+
+The successful stdin-driven run completed from `2026-08-05 09:50:59 UTC` to
+`09:51:07 UTC` with exit `0`. Four expected IFM files were verified by filename,
+size, and timestamp only. Original Wazuh records `29775`, `29777`, and `29779`
+showed the launcher, `ntdsutil.exe`, and `VSSVC.exe`; native coverage remained
+generic and insufficient.
+
+Final rules:
+
+```text
+100480 / level 12 — sensitive ntdsutil.exe execution
+100481 / level 14 — explicit visible IFM creation arguments
+MITRE: T1003.003
+```
+
+Final indexed proof:
+
+```text
+Timestamp: 2026-08-05T10:25:27.950Z
+Agent: DC01 / 001
+Rule: 100480 / level 12
+Event: Security 4688 / record 29838
+Process: C:\Windows\System32\ntdsutil.exe
+MITRE: T1003.003 — NTDS
+```
+
+The operator captured the Dashboard screenshot with
+`agent.id:"001" AND rule.id:"100480"`. Experimental VSS/ESENT correlation rule
+`100482` was removed because no reliable custom alert was proven. `100481` is
+supplemental and cannot see stdin-delivered arguments.
+
+Cleanup passed: IFM output absent, temporary Defender test allowance removed,
+Defender and real-time protection enabled, NTDS running, VSS stopped, shadow-copy
+count zero, Wazuh agent/manager running, and `dcdiag` exit `0`.
+
+Known limitation: rule `100480` also alerts on legitimate `ntdsutil.exe`
+administration. No standalone benign false-positive run was preserved, so that
+control remains future hardening work rather than an invented PASS.
+
+Versioned sources:
+
+```text
+rules/ntds_credential_dump_detection.xml
+tests/ntds_credential_dump_cmd.md
+tests/results/ntds_credential_dump_validation_2026-08-05.md
+```
+
+Verdict: **COMPLETE / PASS** for simulation, telemetry, custom alert,
+Dashboard/index delivery, and cleanup/recovery.
+
+## Active/incomplete validation: BlueHammer CVE-2026-33825
+
+BlueHammer is separate from NTDS and is **not complete**. WIN01 was version-
+applicable after snapshot rollback (`4.18.1909.6`, below fixed boundary
+`4.18.26030.3011`). Defender blocked the official release before process
+creation. A later bounded manual launch with `--no-spawn --log-steps` started but
+failed during Windows Update search with `0x800B0109` before exploit execution.
+Live TLS inspection showed FortiGate captive interception presenting its appliance
+certificate for Microsoft Update, with both untrusted-root and hostname-mismatch
+errors. No successful protected-file copy, privilege escalation, or final Wazuh
+impact evidence is claimed. Resume only after Microsoft Update trust/connectivity
+works without interception; keep bounded flags and clean any protected-file copy
+without inspecting it.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”
