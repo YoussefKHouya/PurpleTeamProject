@@ -94,8 +94,12 @@ prevention evidence was preserved. WIN01 reported Tamper Protection enabled and
 `Set-MpPreference -DisableRealtimeMonitoring $true` did not change live status;
 real-time, behavior, and IOAV protections all remained enabled. Because the
 control gate failed, PowerUp was not restaged or imported. No persistent
-registry/GPO workaround or exclusion was introduced. Final protection status,
-Wazuh service health, and artifact absence all passed.
+registry/GPO workaround or PowerUp exclusion was introduced. At that gate,
+Wazuh health and artifact absence passed. A later operator GUI change for the
+SharpView retest disabled Defender protections globally; PowerUp was still not
+rerun. At the final post-batch checkpoint, real-time, behavior, and IOAV remained
+disabled with Tamper Protection enabled. Restoration remains a manual WIN01 GUI
+gate.
 
 ## Limitation
 

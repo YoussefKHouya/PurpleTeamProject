@@ -1,0 +1,33 @@
+<group name="windows,network,scan,">
+  <rule id="100510" level="3">
+    <if_sid>60600</if_sid>
+    <field name="win.system.providerName">^WazuhTcpScanWatcher$</field>
+    <field name="win.system.eventID">^1100$</field>
+    <description>TCP scan watcher ready on Windows endpoint</description>
+  </rule>
+
+  <rule id="100511" level="12">
+    <if_sid>60600</if_sid>
+    <field name="win.system.providerName">^WazuhTcpScanWatcher$</field>
+    <field name="win.system.eventID">^1101$</field>
+    <description>TCP port scan detected by target-side pktmon SYN correlation</description>
+    <mitre><id>T1046</id></mitre>
+    <group>network_service_discovery,port_scan,</group>
+  </rule>
+
+  <rule id="100512" level="7">
+    <if_sid>60600</if_sid>
+    <field name="win.system.providerName">^WazuhTcpScanWatcher$</field>
+    <field name="win.system.eventID">^1102$</field>
+    <description>TCP scan watcher collection error</description>
+    <group>network_sensor_error,</group>
+  </rule>
+
+  <rule id="100513" level="5">
+    <if_sid>60600</if_sid>
+    <field name="win.system.providerName">^WazuhTcpScanWatcher$</field>
+    <field name="win.system.eventID">^1103$</field>
+    <description>TCP scan activity returned below threshold</description>
+    <group>port_scan,recovery,</group>
+  </rule>
+</group>

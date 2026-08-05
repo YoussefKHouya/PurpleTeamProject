@@ -908,8 +908,10 @@ tests/results/powerview_validation_2026-08-05.md
 
 ## Tier 3 enumeration batch — 2026-08-05
 
-Four additional medium-high tests were processed atomically after PowerView. No
-endpoint protection was disabled and no Defender exclusion was added.
+Four additional medium-high tests were processed atomically after PowerView. The
+initial prevention tests kept Defender enabled. A later GUI-controlled SharpView
+behavioral retest changed this condition; that retest and unresolved Defender
+restoration are documented separately below.
 
 ### SharpView
 
@@ -919,8 +921,13 @@ SHA-256 was `c0621954bd329b5cabe45e92b31053627c27fa40853beb2cce2734fa677ffd93`.
 Defender blocked the file write before low-privilege execution as
 `VirTool:MSIL/Menace.C!MTB`. Defender 1116 record `1270` reached Wazuh rule
 `62123`, level 12. Harmless string control produced zero matching Defender
-events. Cleanup and endpoint health passed. Verdict: **DETECTION COMPLETE /
-ENUMERATION BLOCKED**.
+events. Initial cleanup and endpoint health passed. Original verdict:
+**DETECTION COMPLETE / ENUMERATION BLOCKED**. During the later GUI-allowed retest,
+the pinned binary executed twice as medium-integrity `SIMULATION\\yassine.karimi`.
+The corrected explicit-domain invocation returned forest `SIMULATION.LOCAL`, then
+hit WinRM's non-delegable credential boundary. Security records `35684/35689`,
+Sysmon records `42164/42175`, and Wazuh `67027` level 3 prove process execution.
+Retest verdict: **EXECUTION PASS / ENUMERATION PARTIAL / GENERIC VISIBILITY PASS**.
 
 ### adPEAS
 
@@ -953,13 +960,148 @@ registry/service false-positive tests produced zero matching Defender events;
 no queue-loss rule `203` appeared. Cleanup passed. Verdict: **DETECTION COMPLETE
 / EXECUTION BLOCKED**.
 
-A later separate behavioral-execution gate attempted only
-`Set-MpPreference -DisableRealtimeMonitoring $true`. Tamper Protection was
-active; the command returned no error but live real-time protection stayed
-enabled. No tool was restaged, no registry/GPO workaround or exclusion was used,
-and an explicit enable command preserved the baseline. Final status showed all
-Defender protections enabled, Wazuh running, and both tool directories absent.
-SharpView and PowerUp therefore remain blocked before behavioral execution.
+The first separate behavioral gate attempted only
+`Set-MpPreference -DisableRealtimeMonitoring $true`. Tamper Protection was active
+and live protection stayed enabled. Later, the operator changed Defender controls
+through the GUI for SharpView. The pinned binary then executed and returned forest
+`SIMULATION.LOCAL`, but WinRM credential delegation blocked full controller
+expansion. The GUI state also disabled real-time, behavior, and IOAV protection.
+The exact SharpView exclusion and artifacts were removed; remote restoration was
+rejected by Tamper Protection. Final read-only status at
+`2026-08-05T19:17:50.9927163Z` was Antivirus enabled, Tamper Protection enabled,
+but real-time, behavior monitoring, and IOAV protection still disabled. The attack
+batch is complete; those three controls require later restoration through the
+WIN01 GUI before the lab returns to its protected baseline. PowerUp was not rerun
+in this later window.
+
+## Bounded network scans — 2026-08-05
+
+Masscan `1.3.2` scanned TCP ports `1-65535` against one explicit WIN01 `/32` at
+100 packets/second from `2026-08-05T18:03:12.347240800Z` through
+`2026-08-05T18:14:12.564640737Z`. A direct-link retry required the target's
+neighbor-table MAC via `--router-mac`; the first attempt had failed before sending
+scan traffic while trying router `0.0.0.0`. The successful JSON reported ports
+`135`, `3389`, `5040`, `5985`, and `7680` open. Packet capture proved exactly
+65,535 outbound SYNs, 65,535 unique ports, and one destination host.
+
+Nmap `7.98` then ran an isolated `-sS -Pn -n --top-ports 1000` scan with max rate
+50 and one retry. It completed in 40.89 seconds and reported ports `135`, `3389`,
+and `5985` open. Packet capture proved 2,027 SYNs, 1,000 unique ports, and one host.
+A one-port TCP/445 SYN false-positive control produced no scan alert.
+
+Both Filtering Platform audit subcategories were `No Auditing`; the original scan
+windows therefore exposed a real endpoint/Wazuh telemetry gap. A later closure
+phase deployed a temporary SYSTEM watcher over Windows built-in `pktmon`, filtered
+to the exact Kali/WIN01 pair and correlated by distinct inbound SYN destination
+ports in a ten-second window.
+
+A representative Masscan `1-100` trigger produced Application 1101 record `4469`
+and Wazuh `100511`, level 12, T1046; 47 distinct ports and 48 packets were present
+at threshold crossing, with 99 matching SYNs total. Nmap's top-1,000 profile reran
+in 40.84 seconds and produced Application 1101 record `4471`, Wazuh `100511`, 54
+distinct ports and 104 packets at threshold crossing, and 2,017 matching SYNs
+total. Recovery events `4470/4472` reached Wazuh `100513`. A one-port TCP/445
+false-positive test produced zero scan alerts and zero new watcher errors.
+
+Final verdict for both: **EXECUTION PASS / PACKET PROOF PASS / ENDPOINT-WAZUH
+DETECTION PASS**. Scanner artifacts and temporary watcher task/script/pktmon
+session/filter/output files were removed. Manager rule remains deployed.
+
+## PsExec service execution — 2026-08-05
+
+WIN01 SMB listened on TCP/445 but its baseline firewall blocked Kali. One temporary
+inbound rule allowed only Kali's lab address to WIN01 TCP/445. Impacket
+`psexec` authenticated through an in-memory password prompt, wrote a randomized
+service binary through `ADMIN$`, created/started/stopped/removed service `auAA`,
+and removed the binary. The bounded marker proved execution as
+`NT AUTHORITY\\SYSTEM` at `2026-08-05T17:50:40.0728833Z`.
+
+System `7045` record `5066`, Security `4688` records `35750/35751`, and Sysmon
+records `42334/42335` established the service/process chain. Native Wazuh rule
+`92650`, level 12, mapped it to `T1021.002` and `T1569.002`; supporting rules
+`67027`, `92052`, and `100313` also fired. An authenticated SMB share-listing
+false-positive test created no `7045` or `92650`. Marker, service, binary, matching
+WER report, and temporary firewall rule were removed; TCP/445 returned to timeout
+baseline. Verdict: **COMPLETE / PASS**, with Defender prevention untested because
+protection was intentionally disabled.
+
+## WinRM remote execution — 2026-08-05
+
+Direct WinRM executed one encoded PowerShell marker command as
+`SIMULATION\\Administrator` at `2026-08-05T18:20:12.2934714Z`. Endpoint evidence
+proved `WinrsHost.exe -> cmd.exe -> powershell.exe`: Security `4688` records
+`35871/35873/35874` and Sysmon records `42711/42712`. Wazuh rule `100331`, level
+12, detected CMD launching encoded PowerShell; rule `100110`, level 10, detected
+the encoded PowerShell child. Supporting rules `67027` and `92052` preserved
+WinRM host-process context.
+
+The false-positive test authenticated and opened/closed a WinRM shell without
+running a command. It produced only generic `67027` process visibility and zero
+`100331/100110` alerts. Marker and empty directory were removed; Wazuh and firewall
+services remained healthy. Verdict: **COMPLETE / PASS**, with Defender prevention
+untested because protection remained intentionally disabled.
+
+## Delegated GPO persistence — 2026-08-05
+
+The operational `Wazuh - Windows Auditing` GPO was not overwritten. Its final
+fingerprint remained GUID `0738bd22-e453-4f0b-89a7-950cba627004`, modification
+`2026-07-27T14:42:44Z`, user version `0`, and computer version `17`.
+
+A disposable `Workstation Software Update` GPO
+(`270b30fc-4a68-41a2-96ef-d44d6f2dc265`) was linked at the domain root, not
+enforced. Authenticated Users had read only, WIN01 alone had Apply, and
+low-privilege `SIMULATION\\yassine.karimi` had GPO edit rights. Yassine changed
+the computer version `0 -> 1` and configured HKLM Run `WindowsUpdateHealth` to a
+benign WIN01-local updater script. WIN01 applied the exact value after `gpupdate`;
+no interactive logon occurred, so payload execution was not claimed.
+
+DC Security 5136 records `30586-30588` identify Yassine, the exact GPO DN,
+version change, and Registry extension. Wazuh agent 001 ingested all three as
+native rule `60229`, level 4, MITRE T1484. WIN01 GroupPolicy records `6714`,
+`6719`, and `6725`, plus System record `5073`, prove policy application. No
+matching Sysmon Event 13 appeared, leaving a documented endpoint registry
+telemetry gap.
+
+Read-only `Get-GPO` by the same user created zero 5136 and zero Wazuh 60229.
+Yassine then removed the registry policy, increasing computer version `1 -> 2`.
+Policy withdrawal tattooed the arbitrary Run value, so cleanup removed only that
+value explicitly. The link, GPO, SYSVOL directory, updater script, marker, and Run
+value were removed; final `gpresult` excluded the test GPO. Verdict:
+**PASS WITH ENDPOINT SYSMON GAP**.
+
+## Dashboard queries — 2026-08-05 batch
+
+Use Wazuh Dashboard Discover / Threat Hunting with the relevant UTC window:
+
+```text
+# Masscan and Nmap target-side watcher alerts
+agent.id:004 AND rule.id:100511
+
+# Exact Masscan and Nmap watcher records
+agent.id:004 AND rule.id:100511 AND data.win.system.eventRecordID:(4469 OR 4471)
+
+# Watcher recovery/reset
+agent.id:004 AND rule.id:100513 AND data.win.system.eventRecordID:(4470 OR 4472)
+
+# Delegated GPO modification
+agent.id:001 AND rule.id:60229 AND data.win.eventdata.subjectUserName:"yassine.karimi"
+
+# Exact GPO mutation records
+agent.id:001 AND rule.id:60229 AND data.win.system.eventRecordID:(30586 OR 30587 OR 30588)
+
+# Exact disposable GPO object
+agent.id:001 AND rule.id:60229 AND data.win.eventdata.objectDN:*270B30FC-4A68-41A2-96EF-D44D6F2DC265*
+
+# PsExec service execution
+agent.id:004 AND rule.id:92650
+
+# WinRM encoded command chain
+agent.id:004 AND (rule.id:100331 OR rule.id:100110)
+```
+
+Manager `alerts.json` proved delivery. Dashboard/index API verification was not
+available; an empty Dashboard result must be treated as an indexing/time-range
+issue until checked manually, not as evidence that endpoint events did not exist.
 
 Authoritative artifacts:
 
@@ -972,6 +1114,20 @@ tests/seatbelt_cmd.md
 tests/results/seatbelt_validation_2026-08-05.md
 tests/powersploit_powerup_cmd.md
 tests/results/powersploit_powerup_validation_2026-08-05.md
+tests/masscan_cmd.md
+tests/results/masscan_validation_2026-08-05.md
+tests/nmap_syn_cmd.md
+tests/results/nmap_syn_validation_2026-08-05.md
+agents/windows/tcp_scan_watcher.ps1
+rules/tcp_scan_detection.xml
+tests/tcp_scan_watcher_cmd.md
+tests/results/tcp_scan_watcher_validation_2026-08-05.md
+tests/psexec_cmd.md
+tests/results/psexec_validation_2026-08-05.md
+tests/winrm_cmd.md
+tests/results/winrm_validation_2026-08-05.md
+tests/gpo_delegated_persistence_cmd.md
+tests/results/gpo_delegated_persistence_validation_2026-08-05.md
 ```
 
 Dashboard/index API verification remains unavailable for these new events because

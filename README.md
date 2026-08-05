@@ -25,6 +25,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/asrep_roasting_detection.xml` | `tests/asrep_cmd.md` |
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
 | `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
+| `rules/tcp_scan_detection.xml` | `tests/tcp_scan_watcher_cmd.md` |
 
 PowerView, SharpView, and PowerSploit/PowerUp use the proven native Defender
 rules `62123`/`62124`, so they have no custom-rule XML. adPEAS currently uses
@@ -38,6 +39,12 @@ tests/sharpview_cmd.md
 tests/adpeas_cmd.md
 tests/seatbelt_cmd.md
 tests/powersploit_powerup_cmd.md
+tests/masscan_cmd.md
+tests/nmap_syn_cmd.md
+tests/tcp_scan_watcher_cmd.md
+tests/psexec_cmd.md
+tests/winrm_cmd.md
+tests/gpo_delegated_persistence_cmd.md
 ```
 
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
@@ -58,10 +65,15 @@ AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
 NTDS IFM extraction:        validated; stdin limitation documented
 PowerView reconnaissance:   detection validated; execution blocked by Defender
-SharpView enumeration:      detection validated; execution blocked by Defender
+SharpView enumeration:      prevention validated; GUI-allowed execution pass, enumeration partial
 adPEAS enumeration:         partial; import detected, LDAP blocked by WinRM delegation
 Seatbelt host recon:        build blocked; no executable produced
 PowerSploit PowerUp:        detection validated; execution blocked by Defender
+Masscan full-port scan:     execution + packet proof + pktmon/Wazuh detection validated
+Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection validated
+PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12
+WinRM remote execution:     validated; Wazuh 100331 level 12
+Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon gap
 ```
 
 ## Workflow

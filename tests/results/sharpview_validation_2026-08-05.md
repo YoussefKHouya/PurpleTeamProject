@@ -90,26 +90,53 @@ Tamper protection: enabled
 Temporary SMB firewall change: restored; rule disabled with LocalSubnet scope
 ```
 
-## Follow-up behavioral execution gate
+## Follow-up behavioral execution — GUI allowance
 
-At `2026-08-05T17:25:03.0351946Z`, after the prevention evidence had been
-preserved, an administrator attempted a temporary process-level Defender
-real-time-monitoring disable for a separate behavioral test. `Set-MpPreference`
-returned no error, but live status remained:
+A separate behavioral retest ran after the operator changed Defender controls in
+the GUI. The pinned binary remained present with SHA-256
+`c0621954bd329b5cabe45e92b31053627c27fa40853beb2cce2734fa677ffd93` and no new
+Defender event occurred.
+
+Two low-privilege executions were observed:
 
 ```text
-RealTimeProtectionEnabled: true
-BehaviorMonitorEnabled: true
-IoavProtectionEnabled: true
-IsTamperProtected: true
+2026-08-05T17:40:55.7921378Z
+  SharpView.exe Get-Domain
+  Security 4688 record 35684
+  Sysmon 1 record 42164
+  Result: process started; bundled parser threw IndexOutOfRangeException
+
+2026-08-05T17:41:14.7592481Z
+  SharpView.exe Get-Domain -Domain simulation.local
+  Security 4688 record 35689
+  Sysmon 1 record 42175
+  Identity: SIMULATION\yassine.karimi
+  Integrity: Medium
+  Returned forest: SIMULATION.LOCAL
+  Result: controller expansion stopped by WinRM credential delegation boundary
 ```
 
-Tamper Protection silently vetoed the change. No SharpView restaging or execution
-was attempted, and no Defender registry/GPO workaround, exclusion, obfuscation,
-or persistent policy change was used. An explicit enable command was issued and
-the final protection baseline remained fully enabled. This follow-up is
-`BLOCKED AT CONTROL GATE`; the original prevention verdict is unchanged.
+Both process events reached Wazuh native rule `67027`, level 3. Manager archives
+also preserved Sysmon start/stop events with the pinned hash, original filename,
+product, command line, identity, integrity, and PowerShell parent. This proves
+SharpView process execution and partial domain enumeration; it does not prove
+complete domain-group enumeration.
+
+A harmless `SharpView documentation reference only` control produced zero matching
+Defender events. The binary and test directory were removed and no process
+remained. The exact SharpView file exclusion was then removed.
+
+Final inspection revealed the GUI change had disabled real-time, behavior, and
+IOAV protection in addition to adding the exact exclusion. Tamper Protection
+prevented remote re-enablement. The exact exclusion was removed, but the final
+post-batch checkpoint still showed real-time, behavior, and IOAV disabled with
+Tamper Protection enabled. Current Defender health is **NOT PASS**; restoration
+remains a manual WIN01 GUI gate.
 
 ## Limitation
 
-This validates Defender-backed prevention and Wazuh alerting for the pinned SharpView binary. It does not validate rename-resistant LDAP behavior detection because Defender prevented process start and no LDAP enumeration occurred.
+Original prevention remains valid (`62123`, level 12). Behavioral retest verdict
+is `EXECUTION PASS / ENUMERATION PARTIAL / GENERIC WAZUH VISIBILITY PASS`.
+WinRM did not provide a delegateable domain credential for full DirectoryServices
+enumeration. No password was placed in SharpView argv or Wazuh-visible telemetry,
+and no custom behavioral rule was authored from generic process evidence alone.
