@@ -953,6 +953,14 @@ registry/service false-positive tests produced zero matching Defender events;
 no queue-loss rule `203` appeared. Cleanup passed. Verdict: **DETECTION COMPLETE
 / EXECUTION BLOCKED**.
 
+A later separate behavioral-execution gate attempted only
+`Set-MpPreference -DisableRealtimeMonitoring $true`. Tamper Protection was
+active; the command returned no error but live real-time protection stayed
+enabled. No tool was restaged, no registry/GPO workaround or exclusion was used,
+and an explicit enable command preserved the baseline. Final status showed all
+Defender protections enabled, Wazuh running, and both tool directories absent.
+SharpView and PowerUp therefore remain blocked before behavioral execution.
+
 Authoritative artifacts:
 
 ```text

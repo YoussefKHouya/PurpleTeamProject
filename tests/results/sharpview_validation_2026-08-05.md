@@ -90,6 +90,26 @@ Tamper protection: enabled
 Temporary SMB firewall change: restored; rule disabled with LocalSubnet scope
 ```
 
+## Follow-up behavioral execution gate
+
+At `2026-08-05T17:25:03.0351946Z`, after the prevention evidence had been
+preserved, an administrator attempted a temporary process-level Defender
+real-time-monitoring disable for a separate behavioral test. `Set-MpPreference`
+returned no error, but live status remained:
+
+```text
+RealTimeProtectionEnabled: true
+BehaviorMonitorEnabled: true
+IoavProtectionEnabled: true
+IsTamperProtected: true
+```
+
+Tamper Protection silently vetoed the change. No SharpView restaging or execution
+was attempted, and no Defender registry/GPO workaround, exclusion, obfuscation,
+or persistent policy change was used. An explicit enable command was issued and
+the final protection baseline remained fully enabled. This follow-up is
+`BLOCKED AT CONTROL GATE`; the original prevention verdict is unchanged.
+
 ## Limitation
 
 This validates Defender-backed prevention and Wazuh alerting for the pinned SharpView binary. It does not validate rename-resistant LDAP behavior detection because Defender prevented process start and no LDAP enumeration occurred.

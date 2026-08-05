@@ -87,6 +87,16 @@ Tamper protection: enabled
 Fresh Wazuh rule 203 queue-loss alerts: 0
 ```
 
+## Follow-up behavioral execution gate
+
+The same temporary real-time-monitoring gate was evaluated after the PowerUp
+prevention evidence was preserved. WIN01 reported Tamper Protection enabled and
+`Set-MpPreference -DisableRealtimeMonitoring $true` did not change live status;
+real-time, behavior, and IOAV protections all remained enabled. Because the
+control gate failed, PowerUp was not restaged or imported. No persistent
+registry/GPO workaround or exclusion was introduced. Final protection status,
+Wazuh service health, and artifact absence all passed.
+
 ## Limitation
 
 This validates Defender prevention and Wazuh ingestion for pinned PowerUp content. Because prevention occurred before import, it does not validate behavioral detection for the three read-only PowerUp checks.
