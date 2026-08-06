@@ -129,7 +129,7 @@ CommandLine      = OSInfo ... TokenGroups ... PowerShell
 
 Ordinary executable renaming does not change `OriginalFileName` or `Product`, avoiding a basename-only rule.
 
-Positive retest:
+Positive retest before command-boundary hardening:
 
 ```text
 Custom rule:          100524
@@ -140,6 +140,17 @@ Sysmon stop record:   51199
 User:                 SIMULATION\yassine.karimi
 Integrity:            Medium
 SHA-256:              bc17d0107c34fb6f67e85d9c37a9b606e1f3c6a48bc8de4d710cd6d6b1695fff
+Manager alerts.json:  PASS
+```
+
+Independent review found the original command-line expression allowed extra tokens before, between, or after the approved modules. The expression was anchored to one executable token followed by exactly `OSInfo TokenGroups PowerShell` and end-of-string. Post-hardening positive validation passed:
+
+```text
+Custom rule:          100524
+Level:                12
+Sysmon record:        51536
+Command:              Seatbelt.exe OSInfo TokenGroups PowerShell
+User:                 SIMULATION\yassine.karimi
 Manager alerts.json:  PASS
 ```
 
@@ -166,13 +177,30 @@ Custom rule 100524:    ABSENT — PASS
 
 This is a negative detector control only. It is not represented as Seatbelt execution.
 
+A second boundary control used the genuine Seatbelt binary and genuine PE metadata but appended one invalid module token:
+
+```powershell
+& "$env:TEMP\SeatbeltLab\Seatbelt.exe" OSInfo TokenGroups PowerShell NotASeatbeltCommand
+```
+
+```text
+Sysmon record:         51546
+Security 4688 record: 39533
+OriginalFileName:     Seatbelt.exe
+Product:              Seatbelt
+Native rule:          67027, level 3
+Custom rule 100524:   ABSENT — PASS
+```
+
+This proves the anchored rule rejects extra tokens even when all three approved module names and authentic Seatbelt metadata are present. Manager verification searched agent `004` for the exact command and record `51546` in `archives.json`, then searched `alerts.json` over the same command/time boundary; only native Security rule `67027` appeared.
+
 ## Pipeline and health
 
 ```text
 Wazuh XML parse:               PASS
 Duplicate custom rule IDs:     PASS
 wazuh-analysisd -t:            PASS
-Repository/deployed rule hash: 33dcba20bac42574fdfc83b7ad982a6433e7f809a4ff280a3af9ddab5da42790
+Repository/deployed rule hash: b3f5874a31002683e3dea0f2c4e098c5784de42f07a04e26c2106af591f3bf8e
 wazuh-manager:                 active
 WIN01 agent 004:               Active
 Manager alerts.json positive:  PASS

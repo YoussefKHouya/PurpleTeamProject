@@ -1006,10 +1006,15 @@ posture output. Security record `39393` and Sysmon records `51067`/`51075`
 correlated the initial run.
 
 Custom Sysmon rule `100524`, level 12, matches rename-resistant Seatbelt PE
-metadata plus the bounded module semantics. Positive record `51193` passed with
-Security record `39423`. A copied `whoami.exe` named `Seatbelt.exe` and launched
-with the same arguments produced Sysmon record `51243` and Security record
-`39433` but no `100524`, proving filename/argument false-positive resistance.
+metadata plus an anchored command grammar containing exactly the three approved
+modules. Initial positive record `51193` passed with Security record `39423`.
+After independent review hardened the argument boundary, positive record `51536`
+passed; a genuine Seatbelt run with appended invalid token
+`NotASeatbeltCommand` produced Sysmon record `51546` and Security record `39533`
+but no `100524`. A copied `whoami.exe` named `Seatbelt.exe` and launched with the
+same approved arguments produced Sysmon record `51243` and Security record
+`39433` but no `100524`, proving both metadata and argument-boundary false-positive
+resistance.
 Defender was already inactive except tamper protection and was not modified; no
 Seatbelt Defender 1116/1117 event occurred. Source, build tools/products, output,
 and controls remain retained. Full evidence:

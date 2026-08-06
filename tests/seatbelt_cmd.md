@@ -130,6 +130,14 @@ Copy-Item "$env:WINDIR\System32\whoami.exe" "$env:TEMP\SeatbeltNegative\Seatbelt
 
 Require Sysmon `OriginalFileName=whoami.exe`, Microsoft product metadata, generic process telemetry, and no rule `100524`.
 
+Boundary control using genuine Seatbelt metadata but an invalid extra token:
+
+```powershell
+& "$env:TEMP\SeatbeltLab\Seatbelt.exe" OSInfo TokenGroups PowerShell NotASeatbeltCommand
+```
+
+Require genuine `OriginalFileName=Seatbelt.exe` and `Product=Seatbelt` telemetry, native process visibility, and no rule `100524`. This proves the command matcher accepts exactly one executable token followed by the three approved modules and end-of-string; extra tokens before, between, or after the modules remain outside this bounded rule.
+
 ## Retained lab state
 
 Keep source archive/tree, original and retargeted projects, official compiler/reference packages, build outputs/logs, Seatbelt binary/output logs, negative control, CredSSP, and existing Defender posture unless cleanup is explicitly requested or a safety/test-validity exception applies.
