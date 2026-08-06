@@ -65,11 +65,11 @@ Kerberoasting:              validated
 AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
 NTDS IFM extraction:        validated; stdin limitation documented
-PowerView reconnaissance:   detection validated; execution blocked by Defender
+PowerView reconnaissance:   prevention preserved; CredSSP read-only behavioral retest validated
 SharpView enumeration:      prevention validated; GUI-allowed execution pass, enumeration partial
 adPEAS enumeration:         standard WinRM partial; CredSSP retest + LDAP + rule 100520 validated
 Seatbelt host recon:        build blocked; no executable produced
-PowerSploit PowerUp:        detection validated; execution blocked by Defender
+PowerSploit PowerUp:        prevention preserved; import/registry check pass, two service checks partial
 Masscan full-port scan:     execution + packet proof + pktmon/Wazuh detection validated
 Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection validated
 PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12

@@ -906,6 +906,18 @@ tests/powerview_cmd.md
 tests/results/powerview_validation_2026-08-05.md
 ```
 
+A separate approved CredSSP behavioral retest on 2026-08-06 removed the WinRM
+LDAP double-hop. The session proved medium-integrity, non-admin
+`SIMULATION\\yassine.karimi`, Kerberos authentication, and LDAP RootDSE access.
+Pinned PowerView imported successfully and all 20 selected read-only checks passed,
+including domain, forest, controller, user, group, computer, OU, GPO, trust, site,
+subnet, exact-object ACL, policy, file-server, DFS, managed-security-group, and
+foreign-principal discovery. No mutating, ticket, roasting, credential, or remote-
+action function ran. PowerShell 4104 record `99403` reached native Wazuh rule
+`91823`, level 14, and the operator confirmed it in Dashboard. Target artifacts
+and processes were removed. The original Defender prevention verdict remains
+preserved. Evidence: `tests/results/powerview_credssp_retest_2026-08-06.md`.
+
 ## Tier 3 enumeration batch — 2026-08-05
 
 Four additional medium-high tests were processed atomically after PowerView. The
@@ -973,6 +985,17 @@ registry/service false-positive tests produced zero matching Defender events;
 no queue-loss rule `203` appeared. Cleanup passed. Verdict: **DETECTION COMPLETE
 / EXECUTION BLOCKED**.
 
+A separate approved CredSSP behavioral retest on 2026-08-06 imported the pinned
+PowerUp script successfully as medium-integrity `SIMULATION\\yassine.karimi` with
+Kerberos. `Get-RegistryAlwaysInstallElevated` executed; direct HKLM/HKCU reads
+confirmed both values absent and no exploitable condition. `Get-UnquotedService`
+and `Get-ModifiableService` reached execution but were denied by the remote low
+token/Service Control Manager. This is **EXECUTION PASS / HOST CHECKS PARTIAL**,
+not Defender prevention. PowerShell 4104 record `100167` reached native Wazuh rule
+`91823`, level 14; manager `alerts.json` proof passed and Dashboard confirmation
+remains pending. Cleanup passed. Evidence:
+`tests/results/powerup_credssp_retest_2026-08-06.md`.
+
 The first separate behavioral gate attempted only
 `Set-MpPreference -DisableRealtimeMonitoring $true`. Tamper Protection was active
 and live protection stayed enabled. Later, the operator changed Defender controls
@@ -986,6 +1009,13 @@ but real-time, behavior monitoring, and IOAV protection still disabled. The atta
 batch is complete; those three controls require later restoration through the
 WIN01 GUI before the lab returns to its protected baseline. PowerUp was not rerun
 in this later window.
+
+Live verification on 2026-08-06 superseded that stale protection checkpoint:
+Defender real-time, behavior, IOAV, and tamper protections were all enabled during
+the PowerView/PowerUp CredSSP retests. CredSSP client/server roles now remain
+enabled by explicit operator direction until lab closure, restricted to delegation
+target `wsman/WIN01.SIMULATION.LOCAL`. Target attack artifacts were removed; the
+open CredSSP posture must be rolled back when the broader lab phase closes.
 
 ## Bounded network scans — 2026-08-05
 

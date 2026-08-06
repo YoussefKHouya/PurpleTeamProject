@@ -57,6 +57,19 @@ Write-Output 'PowerSploit PowerUp documentation reference only'
 
 Access denied or empty output is valid low-token behavior. Expected: no matching Defender `1116/1117` after control timestamp.
 
+## Validated CredSSP behavioral retest
+
+A separate operator-approved retest on 2026-08-06 imported the pinned PowerUp script under medium-integrity `SIMULATION\yassine.karimi` through narrowly scoped CredSSP. `Get-RegistryAlwaysInstallElevated` executed; direct registry verification showed both policy values absent and no exploitable condition. `Get-UnquotedService` and `Get-ModifiableService` reached their checks but were denied by the remote low token/Service Control Manager, not Defender.
+
+The original Defender prevention verdict remains valid. Retest evidence:
+
+```text
+tests/results/powerup_credssp_retest_2026-08-06.md
+Wazuh rule 91823 / level 14 / PowerShell record 100167
+```
+
+Full closure of the two denied host checks requires a proven interactive low-privilege Yassine session. Do not grant administrative rights merely to force them.
+
 ## Cleanup
 
 ```powershell

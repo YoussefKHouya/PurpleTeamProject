@@ -127,6 +127,19 @@ agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1245"
 
 Do not claim PowerView reconnaissance executed unless the pinned file remained present, loaded successfully, and the selected functions returned results.
 
+## Validated CredSSP behavioral retest
+
+A separate operator-approved retest on 2026-08-06 used narrowly scoped CredSSP to remove the WinRM LDAP double-hop. Credential bytes entered the native Windows client through stdin and never appeared in argv or script text. PowerView imported under medium-integrity, non-admin `SIMULATION\yassine.karimi`, and 20 read-only domain/forest/user/group/computer/OU/GPO/trust/site/subnet/ACL/policy checks passed.
+
+The original Defender prevention verdict remains valid. Retest evidence:
+
+```text
+tests/results/powerview_credssp_retest_2026-08-06.md
+Wazuh rule 91823 / level 14 / PowerShell record 99403
+```
+
+CredSSP remains intentionally enabled for the active lab phase with only `wsman/WIN01.SIMULATION.LOCAL` delegated. Disable both roles and remove that exact policy when the lab closes.
+
 ## False-positive test
 
 Run a harmless documentation string as Yassine:
