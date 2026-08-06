@@ -1,63 +1,110 @@
-# SharpView enumeration command playbook
+# SharpView account-enumeration command playbook
 
 ## Scope
 
-- Technique: `T1069.002` — Permission Groups Discovery: Domain Groups
+- Techniques: `T1087.002` — Domain Account Discovery; `T1558.004` — AS-REP Roasting discovery
 - Endpoint: WIN01 / Wazuh agent `004`
-- Intended operator: `SIMULATION\\yassine.karimi` (ordinary domain user)
+- Operator: `SIMULATION\yassine.karimi` (ordinary domain user, Medium integrity)
 - Source: `tevora-threat/SharpView`, commit `b60456286b41bb055ee7bc2a14d645410cca9b74`
-- Pinned compiled SHA-256: `c0621954bd329b5cabe45e92b31053627c27fa40853beb2cce2734fa677ffd93`
+- Pinned SHA-256: `c0621954bd329b5cabe45e92b31053627c27fa40853beb2cce2734fa677ffd93`
 
-SharpView includes mutating methods. This test permits only read-only `Get-*` enumeration. Never invoke `Add-*`, `Remove-*`, `Set-*`, user/group creation, password changes, impersonation, Kerberoasting, or remote connection methods.
+SharpView includes mutating methods. This playbook permits only read-only `Get-*`
+enumeration. Do not invoke `Add-*`, `Remove-*`, `Set-*`, password changes,
+impersonation, Kerberoasting, or remote connection methods.
 
 ## Preflight
 
 ```powershell
-whoami /all
-Get-Service WazuhSvc
-Get-MpComputerStatus | Select RealTimeProtectionEnabled,BehaviorMonitorEnabled,IoavProtectionEnabled,IsTamperProtected
+whoami
 ```
 
-Expected: ordinary Yassine token, Wazuh running, Defender protections enabled.
+```powershell
+Get-Service WazuhSvc
+```
+
+```powershell
+(Get-FileHash "$env:TEMP\sharpview.exe" -Algorithm SHA256).Hash.ToLower()
+```
+
+Expected: `SIMULATION\yassine.karimi`, Wazuh running, pinned hash above.
 
 ## Bounded trigger
 
-Transfer the pinned binary directly to WIN01 without retaining it on the bridge, verify its hash, then run only:
+Use explicit domain and DC. This avoids ambiguous default DirectoryServices
+resolution and produced the validated LDAP bind.
 
 ```powershell
-& "$env:TEMP\\SharpViewLab\\SharpView.exe" Get-Domain
+Set-Location "$env:TEMP"
 ```
 
-Hard stop if Defender blocks staging or execution. Do not add an exclusion, restore the detection, obfuscate the binary, or disable protection.
+```powershell
+.\sharpview.exe Get-NetUser -PreauthNotRequired -Domain simulation.local -Server DC01.simulation.local
+```
 
-## Expected evidence
+Expected LDAP base:
 
 ```text
-Defender Operational 1116/1117
-Security 4688 and/or Sysmon Event 1 only if SharpView actually starts
-Native Wazuh Defender rules 62123/62124
+LDAP://DC01.simulation.local/DC=simulation,DC=local
 ```
 
-Validated Dashboard filter:
+## Expected telemetry
 
 ```text
-agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1270"
+Windows Security 4688
+Sysmon Event 1
+Native Wazuh 67027 / level 3
+Custom 100522 / level 12 for sharpview.exe semantic invocation
+Custom 100523 / level 10 for filename-independent semantic invocation
 ```
 
-Do not claim SharpView enumeration executed unless a low-privilege SharpView process and returned domain data are both proven.
+Named-tool Dashboard filter:
 
-## False-positive test
+```text
+agent.id:"004" AND rule.id:"100522"
+```
+
+Rename-resistant Dashboard filter:
+
+```text
+agent.id:"004" AND rule.id:"100523"
+```
+
+## Real renamed-tool validation
+
+Copy the actual pinned SharpView binary; do not use an unrelated executable as
+final behavior proof.
 
 ```powershell
-Write-Output 'SharpView documentation reference only'
+Copy-Item .\sharpview.exe .\survey.exe -Force
 ```
-
-Expected: no new Defender `1116/1117` and no Wazuh `62123/62124` attributable to the harmless string.
-
-## Cleanup
 
 ```powershell
-Remove-Item "$env:TEMP\\SharpViewLab" -Recurse -Force -ErrorAction SilentlyContinue
+(Get-FileHash .\survey.exe -Algorithm SHA256).Hash.ToLower()
 ```
 
-Verify directory absent, no SharpView process, Wazuh running, and Defender protections enabled.
+```powershell
+.\survey.exe Get-NetUser -PreauthNotRequired -Domain simulation.local -Server DC01.simulation.local
+```
+
+Expected: identical pinned hash, successful LDAP output, `100523` fires, and
+Sysmon reports `OriginalFileName=SharpView.exe` despite image name `survey.exe`.
+
+## False-positive control
+
+```powershell
+Write-Output 'Get-NetUser -PreauthNotRequired documentation only'
+```
+
+Expected: neither `100522` nor `100523` fires.
+
+## Retention
+
+Keep `sharpview.exe`, `survey.exe`, CredSSP posture, and useful lab configuration
+for reproduction. Do not clean up or restore state unless explicitly requested
+or required for safety/test validity.
+
+Validated evidence:
+
+```text
+tests/results/sharpview_interactive_detection_validation_2026-08-06.md
+```

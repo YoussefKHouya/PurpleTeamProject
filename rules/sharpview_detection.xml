@@ -1,0 +1,30 @@
+<group name="windows,sharpview,active_directory_discovery,asrep_discovery,">
+  <!-- High-confidence SharpView behavior: known executable plus AS-REP-roastable account discovery. -->
+  <rule id="100522" level="12">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\sharpview\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bGet-(?:Net|Domain)User\b.*\s-PreauthNotRequired\b</field>
+    <description>SharpView enumerated domain accounts not requiring Kerberos preauthentication</description>
+    <mitre>
+      <id>T1087.002</id>
+      <id>T1558.004</id>
+    </mitre>
+    <group>sharpview,domain_account_discovery,asrep_roastable_discovery,high_confidence,</group>
+  </rule>
+
+  <!-- Rename-resistant behavior: shell-launched executable plus exact discovery semantics. -->
+  <rule id="100523" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\.exe$</field>
+    <field name="win.eventdata.parentProcessName" type="pcre2">(?i)(?:powershell|pwsh|cmd)\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bGet-(?:Net|Domain)User\b.*\s-PreauthNotRequired\b</field>
+    <description>Shell-launched executable used SharpView-compatible semantics to enumerate accounts not requiring Kerberos preauthentication</description>
+    <mitre>
+      <id>T1087.002</id>
+      <id>T1558.004</id>
+    </mitre>
+    <group>renamed_ad_discovery_tool,domain_account_discovery,asrep_roastable_discovery,</group>
+  </rule>
+</group>

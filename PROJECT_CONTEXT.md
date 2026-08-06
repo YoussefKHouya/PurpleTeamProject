@@ -941,6 +941,26 @@ hit WinRM's non-delegable credential boundary. Security records `35684/35689`,
 Sysmon records `42164/42175`, and Wazuh `67027` level 3 prove process execution.
 Retest verdict: **EXECUTION PASS / ENUMERATION PARTIAL / GENERIC VISIBILITY PASS**.
 
+Interactive closure on 2026-08-06 superseded that partial enumeration verdict.
+From a genuine medium-integrity `SIMULATION\\yassine.karimi` shell, the explicit
+DC invocation `Get-NetUser -PreauthNotRequired -Domain simulation.local -Server
+DC01.simulation.local` bound to
+`LDAP://DC01.simulation.local/DC=simulation,DC=local` and returned
+`hannah.reed` with `DONT_REQ_PREAUTH`. Security record `39160` and Sysmon record
+`50410` reached native rule `67027`, level 3. Custom rule `100522`, level 12,
+provides named SharpView semantic coverage. Custom rule `100523`, level 10,
+provides filename-independent coverage for shell-launched executables using the
+same exact discovery semantics. Its first path-anchored version failed on live
+record `39194` because Wazuh preserved doubled separators; that failure is
+retained. After removing separator dependence, real renamed `survey.exe`
+execution fired `100523` on Security record `39237`. Paired Sysmon record `50599`
+proved `OriginalFileName=SharpView.exe`, product/description `SharpView`, the
+pinned SHA-256, Yassine identity, and Medium integrity. Documentation-only
+PowerShell record `139332` fired neither custom rule. Evidence:
+`tests/results/sharpview_interactive_detection_validation_2026-08-06.md`.
+Final verdict: **EXECUTION PASS / LDAP ENUMERATION PASS / DETECTION PASS**.
+Artifacts remain intentionally retained for reproduction.
+
 ### adPEAS
 
 `61106960/adPEAS` commit `1ea06f1d2dc92152b5aaeca6eacff24dd096d82e`
