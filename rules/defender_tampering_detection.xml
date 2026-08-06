@@ -1,0 +1,12 @@
+<!-- Microsoft Defender security-reducing preference changes. -->
+<group name="windows,defender_tampering,defense_evasion,">
+  <rule id="100536" level="10">
+    <if_sid>91802</if_sid>
+    <field name="win.system.eventID">^4104$</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\b(?:Add|Set)-MpPreference\b[^\r\n]*(?:-Exclusion(?:Path|Process|Extension|IpAddress)\b|-Disable(?:RealtimeMonitoring|BehaviorMonitoring|IOAVProtection|ScriptScanning)\s+\$true\b|-MAPSReporting\s+Disabled\b)</field>
+    <description>PowerShell script block contains Microsoft Defender impairment attempt syntax</description>
+    <mitre><id>T1562.001</id></mitre>
+    <group>defender_tampering,impair_defenses,powershell,</group>
+  </rule>
+
+</group>

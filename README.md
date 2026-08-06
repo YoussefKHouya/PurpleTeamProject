@@ -33,6 +33,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/chisel_detection.xml` | `tests/chisel_cmd.md` |
 | `rules/http_exfiltration_detection.xml` | `tests/http_exfiltration_cmd.md` |
 | `rules/dns_exfiltration_detection.xml` | `tests/dns_exfiltration_cmd.md` |
+| `rules/defender_tampering_detection.xml` | `tests/defender_tampering_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
@@ -88,6 +89,7 @@ Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon 
 Chisel reverse tunnel:      genuine low-user tunnel + rules 100525/100526 validated
 HTTP credential exfil:      exact receiver integrity + rules 100531/100532 validated
 DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
+Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
 ```
 
 ## Workflow

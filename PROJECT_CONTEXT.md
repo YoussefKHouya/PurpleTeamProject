@@ -1318,6 +1318,22 @@ without a custom DNS-exfiltration alert. The receiver was stopped. Evidence:
 `tests/results/dns_exfiltration_validation_2026-08-06.md`. Verdict:
 **COMPLETE / PASS**.
 
+## Microsoft Defender preference tampering — 2026-08-06
+
+An Administrator PowerShell session successfully added the controlled exclusion
+`C:\ProgramData\DefenderTamperLab`; Defender was not disabled globally. Custom
+rule `100536`, level 10, T1562.001, fired on PowerShell 4104 records `161611` and
+`162758`. The read-only `(Get-MpPreference).DisableRealtimeMonitoring` test
+produced record `161641` and no custom tampering alert.
+
+A proposed 4103 high-confidence rule was removed rather than versioning dead
+coverage after two bounded refinements failed against the live escaped payload and
+parent shape. The proven 4104 rule remains deployed, manager health passed, and the
+deployed/repository hashes match. The operator removed the exclusion and controlled
+directory; the endpoint returned `DEFENDER_CLEANUP=PASS`. Evidence:
+`tests/results/defender_tampering_validation_2026-08-06.md`. Verdict: **COMPLETE /
+PASS**.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”
