@@ -29,13 +29,15 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/adpeas_detection.xml` | `tests/adpeas_cmd.md` |
 | `rules/powerup_detection.xml` | `tests/powersploit_powerup_cmd.md` |
 | `rules/sharpview_detection.xml` | `tests/sharpview_cmd.md` |
+| `rules/seatbelt_detection.xml` | `tests/seatbelt_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
 PowerSploit/PowerUp uses PowerShell Operational telemetry plus custom invocation
-rule `100521`. adPEAS uses custom semantic rule `100520`; Seatbelt stopped at its
-source-build gate. Their telemetry configuration and
-playbooks are:
+rule `100521`. adPEAS uses custom semantic rule `100520`. Seatbelt uses live
+Sysmon PE metadata plus bounded-command rule `100524`; its pinned source was
+retargeted to .NET Framework 4.8 and built with official Microsoft packages.
+Their telemetry configuration and playbooks are:
 
 ```text
 agents/windows/workstation-sysmon-agent.conf
@@ -72,7 +74,7 @@ NTDS IFM extraction:        validated; stdin limitation documented
 PowerView reconnaissance:   prevention preserved; CredSSP read-only behavioral retest validated
 SharpView enumeration:      explicit-DC LDAP success; rules 100522/100523 + negative control validated
 adPEAS enumeration:         standard WinRM partial; CredSSP retest + LDAP + rule 100520 validated
-Seatbelt host recon:        build blocked; no executable produced
+Seatbelt host recon:        pinned source build + medium-integrity execution + Wazuh 100524 validated
 PowerSploit PowerUp:        prevention preserved; interactive full audit + Wazuh 100521 validated
 Masscan full-port scan:     execution + packet proof + pktmon/Wazuh detection validated
 Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection validated

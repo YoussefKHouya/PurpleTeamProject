@@ -1,0 +1,19 @@
+<!--
+  Seatbelt bounded host-recon detection.
+  Derived from WIN01 Sysmon Event 1 record 51067 on 2026-08-06.
+  OriginalFileName/Product survive ordinary executable renaming.
+-->
+<group name="windows,sysmon,seatbelt,discovery,">
+  <rule id="100524" level="12">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^Seatbelt\.exe$</field>
+    <field name="win.eventdata.product" type="pcre2">(?i)^Seatbelt$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bOSInfo\b.*\bTokenGroups\b.*\bPowerShell\b</field>
+    <description>Seatbelt performed bounded host reconnaissance for OS, token groups, and PowerShell posture</description>
+    <mitre>
+      <id>T1082</id>
+      <id>T1069.002</id>
+    </mitre>
+    <group>process_creation,host_discovery,permission_groups_discovery,</group>
+  </rule>
+</group>

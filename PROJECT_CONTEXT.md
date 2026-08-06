@@ -988,11 +988,33 @@ were removed. Full evidence is in
 ### Seatbelt
 
 `GhostPack/Seatbelt` commit `392171df84472591d4eae7ebd5b1cdc96ba91377`
-was transferred as pinned source and built once directly on WIN01. MSBuild failed
-with `MSB3645/MSB3644` because the .NET Framework 3.5 SP1 targeting pack/reference
-assemblies were absent. No executable was produced; no unofficial binary or old
-SDK was installed. Source was removed and endpoint health passed. Verdict:
-**BUILD BLOCKED / EXECUTION NOT REACHED**.
+was first built directly on WIN01 against its original .NET Framework 3.5 target.
+That attempt failed with `MSB3645/MSB3644`: enabling the `NetFx3` runtime did not
+supply the absent .NET Framework 3.5 SP1 developer reference assemblies. The
+historical result remains in `tests/results/seatbelt_validation_2026-08-05.md`.
+
+Interactive closure on 2026-08-06 preserved the original project, minimally
+retargeted the pinned source copy to .NET Framework 4.8, and compiled it with
+official `Microsoft.Net.Compilers.Toolset` 4.8.0 and
+`Microsoft.NETFramework.ReferenceAssemblies.net48` 1.0.3 packages. The resulting
+593408-byte `Seatbelt.exe` had SHA-256
+`bc17d0107c34fb6f67e85d9c37a9b606e1f3c6a48bc8de4d710cd6d6b1695fff`.
+A local medium-integrity `SIMULATION\\yassine.karimi` shell ran only `OSInfo`,
+`TokenGroups`, and `PowerShell`; retained output proved hostname `Win01`, domain
+`SIMULATION.LOCAL`, the Yassine identity, Domain Users membership, and PowerShell
+posture output. Security record `39393` and Sysmon records `51067`/`51075`
+correlated the initial run.
+
+Custom Sysmon rule `100524`, level 12, matches rename-resistant Seatbelt PE
+metadata plus the bounded module semantics. Positive record `51193` passed with
+Security record `39423`. A copied `whoami.exe` named `Seatbelt.exe` and launched
+with the same arguments produced Sysmon record `51243` and Security record
+`39433` but no `100524`, proving filename/argument false-positive resistance.
+Defender was already inactive except tamper protection and was not modified; no
+Seatbelt Defender 1116/1117 event occurred. Source, build tools/products, output,
+and controls remain retained. Full evidence:
+`tests/results/seatbelt_interactive_detection_validation_2026-08-06.md`. Verdict:
+**PASS**.
 
 ### PowerSploit PowerUp
 
@@ -1192,6 +1214,8 @@ tests/adpeas_cmd.md
 tests/results/adpeas_validation_2026-08-05.md
 tests/seatbelt_cmd.md
 tests/results/seatbelt_validation_2026-08-05.md
+tests/results/seatbelt_interactive_detection_validation_2026-08-06.md
+rules/seatbelt_detection.xml
 tests/powersploit_powerup_cmd.md
 tests/results/powersploit_powerup_validation_2026-08-05.md
 tests/masscan_cmd.md
