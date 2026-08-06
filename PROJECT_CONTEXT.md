@@ -1237,11 +1237,35 @@ tests/winrm_cmd.md
 tests/results/winrm_validation_2026-08-05.md
 tests/gpo_delegated_persistence_cmd.md
 tests/results/gpo_delegated_persistence_validation_2026-08-05.md
+tests/chisel_cmd.md
+tests/results/chisel_reverse_tunnel_validation_2026-08-06.md
+rules/chisel_detection.xml
 ```
 
 Dashboard/index API verification remains unavailable for these new events because
 the available dashboard credential was rejected by the indexer API. Manager
 `alerts.json` evidence is proven. Do not report this as indexed Dashboard proof.
+
+## Chisel reverse tunnel — 2026-08-06
+
+Official `jpillora/chisel` v1.11.8 commit
+`310eec3696e82ef14048268d1d12f1cd99d6dbe9` passed `go test ./...` and was
+cross-compiled for Windows AMD64 and Kali Linux AMD64. The Windows SHA-256 was
+`333e76e0f05b84035396f62990c8e84a31e23a5a43e99766f8d922c634f512e3`.
+Medium-integrity `SIMULATION\\yassine.karimi` connected the genuine client to a
+Kali reverse-enabled server and exposed Kali loopback `18089` to WIN01 loopback
+RDP. A bounded RDP negotiation returned the expected 19-byte response; no RDP
+session, SOCKS proxy, subnet route, persistence, or credential capture occurred.
+
+Sysmon record `53901` and Security record `40614` preserve the real tunnel.
+Rule `100525`, level 10, detects the pinned build by SHA-256 independent of
+filename; renamed `relay-service.exe --version` fired on record `53962`. Child
+rule `100526`, level 12, requires client plus port-forward/reverse syntax and
+fired on renamed record `53950`. A `whoami.exe` process with identical-looking
+arguments produced record `53952` but no custom alert. Both rules map T1572.
+Processes and the tracked Kali server were stopped. The operator-created Defender
+exclusion remains pending administrator rollback. Verdict: **PASS WITH DEFENDER
+EXCLUSION ROLLBACK PENDING**.
 
 ## Collaboration terms
 

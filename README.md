@@ -30,6 +30,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/powerup_detection.xml` | `tests/powersploit_powerup_cmd.md` |
 | `rules/sharpview_detection.xml` | `tests/sharpview_cmd.md` |
 | `rules/seatbelt_detection.xml` | `tests/seatbelt_cmd.md` |
+| `rules/chisel_detection.xml` | `tests/chisel_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
@@ -52,6 +53,7 @@ tests/tcp_scan_watcher_cmd.md
 tests/psexec_cmd.md
 tests/winrm_cmd.md
 tests/gpo_delegated_persistence_cmd.md
+tests/chisel_cmd.md
 ```
 
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
@@ -81,6 +83,7 @@ Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection va
 PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12
 WinRM remote execution:     validated; Wazuh 100331 level 12
 Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon gap
+Chisel reverse tunnel:      genuine low-user tunnel + rules 100525/100526 validated
 ```
 
 ## Workflow
