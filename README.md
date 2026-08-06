@@ -34,6 +34,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/http_exfiltration_detection.xml` | `tests/http_exfiltration_cmd.md` |
 | `rules/dns_exfiltration_detection.xml` | `tests/dns_exfiltration_cmd.md` |
 | `rules/defender_tampering_detection.xml` | `tests/defender_tampering_cmd.md` |
+| `rules/amsi_bypass_detection.xml` | `tests/amsi_bypass_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
@@ -90,6 +91,7 @@ Chisel reverse tunnel:      genuine low-user tunnel + rules 100525/100526 valida
 HTTP credential exfil:      exact receiver integrity + rules 100531/100532 validated
 DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
 Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
+AMSI bypass attempt:        Defender prevention + rule 100538 + harmless AMSI-text FP validated
 ```
 
 ## Workflow

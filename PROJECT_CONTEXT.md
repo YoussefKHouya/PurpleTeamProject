@@ -1334,6 +1334,23 @@ directory; the endpoint returned `DEFENDER_CLEANUP=PASS`. Evidence:
 `tests/results/defender_tampering_validation_2026-08-06.md`. Verdict: **COMPLETE /
 PASS**.
 
+## AMSI bypass prevention and detection — 2026-08-06
+
+WIN01 PowerShell 5.1 ran in Full Language Mode as `WIN01\adam.wilson` with
+Defender antivirus, real-time protection, AMSI, Tamper Protection, and Wazuh
+active. A bounded process-local `AmsiUtils.amsiInitFailed` reflection attempt used
+only the harmless EICAR test string. Defender rejected it at parse time with
+`ScriptContainedMaliciousContent`; no bypass, payload execution, persistence, or
+memory modification occurred.
+
+The first block produced PowerShell 4103 record `163861`. After deriving the live
+parent and payload, final rule `100538`, level 14, T1562.001, fired on record
+`164327`. A harmless `AmsiScanBuffer documentation review` command produced records
+`164363` through `164365` without rules `100537` or `100538`. Manager health and
+deployed/repository hash equality passed; cleanup was unnecessary because execution
+was blocked. Evidence: `tests/results/amsi_bypass_validation_2026-08-06.md`.
+Verdict: **PREVENTION PASS / DETECTION PASS**.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”

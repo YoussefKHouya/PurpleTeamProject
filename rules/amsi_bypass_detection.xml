@@ -1,0 +1,19 @@
+<!-- PowerShell AMSI-bypass attempts blocked by antivirus content scanning. -->
+<group name="windows,amsi_bypass,defense_evasion,">
+  <rule id="100537" level="12">
+    <if_sid>60009</if_sid>
+    <field name="win.system.eventID">^4103$</field>
+    <field name="win.eventdata.payload" type="pcre2">(?i)This script contains malicious content and has been blocked by your antivirus software</field>
+    <description>PowerShell script content was blocked by antivirus scanning</description>
+    <mitre><id>T1059.001</id></mitre>
+    <group>powershell,antivirus_block,</group>
+  </rule>
+
+  <rule id="100538" level="14">
+    <if_sid>100537</if_sid>
+    <field name="win.eventdata.payload" type="pcre2">(?i)\bAmsi\b</field>
+    <description>PowerShell AMSI bypass attempt was blocked by antivirus scanning</description>
+    <mitre><id>T1562.001</id></mitre>
+    <group>powershell,amsi_bypass,impair_defenses,high_confidence,</group>
+  </rule>
+</group>
