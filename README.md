@@ -31,6 +31,8 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/sharpview_detection.xml` | `tests/sharpview_cmd.md` |
 | `rules/seatbelt_detection.xml` | `tests/seatbelt_cmd.md` |
 | `rules/chisel_detection.xml` | `tests/chisel_cmd.md` |
+| `rules/http_exfiltration_detection.xml` | `tests/http_exfiltration_cmd.md` |
+| `rules/dns_exfiltration_detection.xml` | `tests/dns_exfiltration_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
@@ -84,6 +86,8 @@ PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12
 WinRM remote execution:     validated; Wazuh 100331 level 12
 Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon gap
 Chisel reverse tunnel:      genuine low-user tunnel + rules 100525/100526 validated
+HTTP credential exfil:      exact receiver integrity + rules 100531/100532 validated
+DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
 ```
 
 ## Workflow

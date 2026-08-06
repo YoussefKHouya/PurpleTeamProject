@@ -1,0 +1,37 @@
+<!-- DNS exfiltration detection derived from WIN01 DNS Client records 261490-261526 and PowerShell telemetry. -->
+<group name="windows,dns_exfiltration,exfiltration,">
+  <rule id="100533" level="8">
+    <if_sid>60009</if_sid>
+    <field name="win.system.providerName">^Microsoft-Windows-DNS-Client$</field>
+    <field name="win.system.eventID">^3006$</field>
+    <field name="win.eventdata.queryName" type="pcre2">(?i)(?:^|\.)[0-9a-f]{32,63}(?:\.|$)</field>
+    <description>DNS query contains a long hexadecimal data label: $(win.eventdata.queryName)</description>
+    <mitre>
+      <id>T1048.003</id>
+    </mitre>
+    <group>dns_tunneling,dns_exfiltration,encoded_data,</group>
+  </rule>
+
+  <rule id="100534" level="12">
+    <if_sid>100533</if_sid>
+    <field name="win.eventdata.queryName" type="pcre2">(?i)^[a-z][a-z0-9]{3,15}\.\d{1,3}\.\d{1,3}\.[0-9a-f]{32,48}\.</field>
+    <description>Sequenced hexadecimal chunks indicate potential DNS data exfiltration</description>
+    <mitre>
+      <id>T1048.003</id>
+    </mitre>
+    <group>dns_tunneling,dns_exfiltration,encoded_data,</group>
+  </rule>
+
+  <rule id="100535" level="12">
+    <if_sid>91802</if_sid>
+    <field name="win.system.eventID">^4104$</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\bReadAllBytes\b</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\.ToString\(['&quot;]x2['&quot;]\)</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\bResolve-DnsName\b[^\r\n]*\s-Server\s+</field>
+    <description>PowerShell script block contains hexadecimal file-encoding and direct DNS-query attempt syntax</description>
+    <mitre>
+      <id>T1048.003</id>
+    </mitre>
+    <group>dns_tunneling,dns_exfiltration,powershell,encoded_data,</group>
+  </rule>
+</group>

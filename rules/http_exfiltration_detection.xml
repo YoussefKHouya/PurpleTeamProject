@@ -1,0 +1,40 @@
+<!-- HTTP/HTTPS file exfiltration detection derived from WIN01 records 41593, 56013, and 156042. -->
+<group name="windows,http_exfiltration,exfiltration,">
+  <!-- Direct curl file upload from Windows process creation telemetry. -->
+  <rule id="100530" level="10">
+    <if_sid>67027</if_sid>
+    <field name="win.system.eventID">^4688$</field>
+    <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\curl\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:\s--data-binary\s+@\S+|\s--upload-file\s+@?\S+|\s-T\s+@?\S+)</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bhttps?://\S+</field>
+    <description>Windows curl invoked with local-file upload syntax over HTTP/S by $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName)</description>
+    <mitre>
+      <id>T1041</id>
+    </mitre>
+    <group>data_exfiltration,http_upload,command_and_control,</group>
+  </rule>
+
+  <!-- Higher-confidence user-profile document/archive upload. -->
+  <rule id="100531" level="12">
+    <if_sid>100530</if_sid>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:--data-binary\s+@|--upload-file\s+@?|-T\s+@?)\S*\bUsers\b\S*\.(?:txt|csv|zip|7z|rar|kdbx|docx|xlsx|pdf)(?=\s|\\?&quot;|$)</field>
+    <description>Potential sensitive user-profile file upload attempt over HTTP/S</description>
+    <mitre>
+      <id>T1041</id>
+    </mitre>
+    <group>data_exfiltration,http_upload,sensitive_file,</group>
+  </rule>
+
+  <!-- Script-block evidence of credential material staged and uploaded. -->
+  <rule id="100532" level="12">
+    <if_sid>91802</if_sid>
+    <field name="win.system.eventID">^4104$</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(?:password|recoverytoken|api[_-]?key|secret)\s*=</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\bcurl(?:\.exe)?\b[^\r\n]*(?:--data-binary\s+@|--upload-file\s+@?|-T\s+@?)\S+[^\r\n]*\bhttps?://</field>
+    <description>PowerShell script block contains credential-like material and HTTP/S file-upload attempt syntax</description>
+    <mitre>
+      <id>T1041</id>
+    </mitre>
+    <group>data_exfiltration,http_upload,credential_material,powershell,</group>
+  </rule>
+</group>

@@ -1282,6 +1282,42 @@ rule was added. Server and temporary forwards/configuration were stopped. Eviden
 `tests/results/chisel_socks_proxychains_validation_2026-08-06.md`. Verdict:
 **COMPLETE / PASS**.
 
+## HTTP credential-file exfiltration — 2026-08-06
+
+A medium-integrity `SIMULATION\\yassine.karimi` PowerShell session staged a
+controlled confidential-looking file with canary service credentials and uploaded
+it through Windows `curl.exe` using HTTP POST and `--data-binary`. The bounded Kali
+receiver returned HTTP 201 and received 187 bytes; source and receiver SHA-256 both
+equaled `d3968bd4920f24b83f12f872edff1461d6ecb26d96a88021d60759a99cbf0296`.
+No real lab credential was transmitted or committed.
+
+Baseline records `156042` (PowerShell 4104), `41593` (Security 4688), and `56013`
+(Sysmon Event 1) proved the complete attack but selected only native rule `67027`.
+`rules/http_exfiltration_detection.xml` now provides `100530` for direct curl file
+uploads, high-confidence user-profile child `100531`, and PowerShell credential-
+staging rule `100532`, all mapped to T1041. Live positives reached `100532` on
+record `156563` and `100531` on records `41681` and `41689`; the final transfer
+returned HTTP 201 with exact byte/hash integrity. False-positive records `41691`,
+`41692`, and `41693` covered version output, retrieval-only traffic, and an inline
+benign POST without triggering any custom exfiltration rule. Dashboard confirmation
+passed. Evidence: `tests/http_exfiltration_cmd.md` and
+`tests/results/http_exfiltration_validation_2026-08-06.md`. Verdict:
+**COMPLETE / PASS**.
+
+## DNS credential-file exfiltration — 2026-08-06
+
+The controlled 187-byte credential file was hex-encoded and sent from the
+medium-integrity Yassine PowerShell session as eight ordered DNS labels to Kali.
+Kali reconstructed the exact source SHA-256
+`d3968bd4920f24b83f12f872edff1461d6ecb26d96a88021d60759a99cbf0296`.
+Wazuh rule `100534` fired at level 12 on all eight DNS Client 3006 records
+`261665`, `261674`, `261683`, `261692`, `261701`, `261710`, `261719`, and
+`261728`; PowerShell rule `100535` fired on 4104 record `159612`. A normal
+`dc01.simulation.local` lookup generated records `261737` through `261745`
+without a custom DNS-exfiltration alert. The receiver was stopped. Evidence:
+`tests/results/dns_exfiltration_validation_2026-08-06.md`. Verdict:
+**COMPLETE / PASS**.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”
