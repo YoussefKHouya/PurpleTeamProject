@@ -11,7 +11,7 @@ Custom rule 100521 live positive:          PASS
 Documentation-string negative control:     PASS
 Manager alerts.json proof:                 PASS
 Indexer/dashboard exact-document proof:    PASS
-Endpoint artifact retention:               INTENTIONAL for reproduction
+Endpoint cleanup requirement:              WAIVED by lab retention policy
 CredSSP retention:                          INTENTIONAL for later lab work
 ```
 
@@ -124,8 +124,10 @@ agent.id:"004" AND rule.id:"100521" AND data.win.system.eventRecordID:"131587"
 
 ## Retained reproducible lab posture
 
-`%TEMP%\power.ps1` is intentionally retained for reproduction. CredSSP remains
-enabled and restricted to `wsman/WIN01.SIMULATION.LOCAL`. Lab tools, vulnerable
+No endpoint cleanup is required. An earlier automated cleanup command timed out,
+so the current presence of `%TEMP%\power.ps1` is not claimed either way; future
+reproductions may retain or re-download it. CredSSP remains enabled and
+restricted to `wsman/WIN01.SIMULATION.LOCAL`. Lab tools, vulnerable
 configuration, and useful access posture are retained by default; cleanup or
 rollback occurs only on explicit operator request or when required for test
 validity or containment outside the isolated lab.
