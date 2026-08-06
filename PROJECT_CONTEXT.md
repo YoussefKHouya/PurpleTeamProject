@@ -1267,6 +1267,21 @@ Processes and the tracked Kali server were stopped. The operator-created Defende
 exclusion remains pending administrator rollback. Verdict: **PASS WITH DEFENDER
 EXCLUSION ROLLBACK PENDING**.
 
+## Chisel reverse SOCKS / ProxyChains — 2026-08-06
+
+The retained pinned Chisel client ran locally as medium-integrity
+`SIMULATION\\yassine.karimi` with `R:socks`. The Kali server exposed loopback
+SOCKS TCP/1080, and a temporary strict ProxyChains configuration completed one
+bounded TCP connection through the tunnel to the known domain controller LDAP
+service. No subnet scan, LDAP authentication, or directory query occurred.
+
+After recovering failed Wazuh manager daemons, the clean rerun reached custom
+rule `100526`, level 12, T1572, on Sysmon record `55794`; the pinned SHA-256 and
+Yassine identity matched. Existing rules already covered this behavior, so no new
+rule was added. Server and temporary forwards/configuration were stopped. Evidence:
+`tests/results/chisel_socks_proxychains_validation_2026-08-06.md`. Verdict:
+**COMPLETE / PASS**.
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”

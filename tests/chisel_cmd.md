@@ -28,6 +28,22 @@ chisel.exe client --fingerprint <SERVER_FINGERPRINT> --max-retry-count 3 <KALI_H
 
 Expected: Kali loopback listener `127.0.0.1:18089`; an RDP negotiation packet returns a 19-byte RDP response through the tunnel.
 
+## Reverse SOCKS and ProxyChains
+
+Kali server:
+
+```bash
+chisel-server server --host <KALI_HOST_ONLY> --port 18082 --reverse
+```
+
+WIN01, local medium-integrity Yassine PowerShell:
+
+```text
+chisel.exe client --fingerprint <SERVER_FINGERPRINT> --max-retry-count 3 <KALI_HOST_ONLY>:18082 R:socks
+```
+
+Use a temporary ProxyChains configuration containing only `socks5 127.0.0.1 1080`, then make one bounded TCP connection through it to the known domain controller LDAP service. Require the Chisel server to report `R:127.0.0.1:1080=>socks: Listening`, ProxyChains to report an `OK` chain, and Wazuh rule `100526` from the genuine client process. Do not scan a subnet or authenticate to LDAP in this test.
+
 ## Detection retests
 
 Rename-resistant known-build execution:
@@ -52,7 +68,7 @@ Expected: `100525` for known build; `100526` for known build plus client-forward
 
 ## Cleanup
 
-Stop endpoint Chisel processes and Kali server. Remove temporary Defender exclusion with Administrator PowerShell after endpoint artifacts are no longer needed:
+Stop endpoint Chisel processes and Kali server, and remove the temporary ProxyChains configuration. Remove temporary Defender exclusion with Administrator PowerShell after endpoint artifacts are no longer needed:
 
 ```powershell
 Remove-MpPreference -ExclusionPath "C:\Users\yassine.karimi\AppData\Local\Temp\ChiselLab"
