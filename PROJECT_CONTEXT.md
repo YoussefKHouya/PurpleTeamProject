@@ -996,6 +996,21 @@ not Defender prevention. PowerShell 4104 record `100167` reached native Wazuh ru
 remains pending. Cleanup passed. Evidence:
 `tests/results/powerup_credssp_retest_2026-08-06.md`.
 
+Interactive closure then ran `Invoke-AllChecks` from a genuine local
+medium-integrity `SIMULATION\\yassine.karimi` shell. PowerShell records `104573`
+(`Invoke-AllChecks`), `104676` (`Get-UnquotedService`), `104681`
+(`Get-ModifiableServiceFile`), and `126085` (`Get-ModifiableService`) reached
+manager archives but initially selected no alert, proving a detection gap.
+Custom filename-independent rule `100521`, level 12, now detects exact
+`Invoke-AllChecks`/`Invoke-PrivescAudit` invocation under native PowerShell
+script-block parent `91802`. Harmless positive record `131587` fired; benign
+documentation record `131678` did not. Manager alert and exact index document
+both passed. PowerUp's `edgeupdate`/`edgeupdatem` results referenced permissions
+on `C:\`, not proven writes to their quoted Program Files executable, and are
+not classified as exploitable. The user-owned WindowsApps PATH result does not
+prove a privileged DLL load. Evidence:
+`tests/results/powerup_interactive_detection_validation_2026-08-06.md`.
+
 The first separate behavioral gate attempted only
 `Set-MpPreference -DisableRealtimeMonitoring $true`. Tamper Protection was active
 and live protection stayed enabled. Later, the operator changed Defender controls
@@ -1012,10 +1027,12 @@ in this later window.
 
 Live verification on 2026-08-06 superseded that stale protection checkpoint:
 Defender real-time, behavior, IOAV, and tamper protections were all enabled during
-the PowerView/PowerUp CredSSP retests. CredSSP client/server roles now remain
-enabled by explicit operator direction until lab closure, restricted to delegation
-target `wsman/WIN01.SIMULATION.LOCAL`. Target attack artifacts were removed; the
-open CredSSP posture must be rolled back when the broader lab phase closes.
+the PowerView/PowerUp CredSSP retests. CredSSP client/server roles remain enabled
+by explicit operator direction for reproducible later lab work, restricted to
+delegation target `wsman/WIN01.SIMULATION.LOCAL`. Current lab policy retains
+useful tools, artifacts, vulnerable configuration, and access posture by default;
+cleanup or rollback occurs only on explicit operator request or when required for
+test validity or containment outside the isolated lab.
 
 ## Bounded network scans — 2026-08-05
 

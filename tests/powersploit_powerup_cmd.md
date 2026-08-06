@@ -10,7 +10,11 @@
 - Artifact: `Privesc/PowerUp.ps1`
 - SHA-256: `9d59d4c128570eb80c0e8d13e2185030f93d965278b203c91dd196b2e1d3cd22`
 
-Only three read-only checks are allowed. Never invoke `Invoke-PrivescAudit`, `Invoke-AllChecks`, `Invoke-ServiceAbuse`, `Set-ServiceBinaryPath`, `Write-*`, `Install-*`, `Enable-Privilege`, UAC bypasses, credential checks, or `Get-System`.
+Default scope permits only the three named read-only checks below. A full
+`Invoke-AllChecks` audit requires explicit operator approval and a genuine local
+low-privilege session. Never invoke `Invoke-ServiceAbuse`,
+`Set-ServiceBinaryPath`, `Write-*`, `Install-*`, `Enable-Privilege`, UAC
+bypasses, credential checks, or `Get-System`.
 
 ## Preflight
 
@@ -39,12 +43,19 @@ Hard stop when Defender prevents staging/import. Do not add exclusions, obfuscat
 Defender Operational 1116/1117
 Wazuh native 62123/62124 when prevented
 Security 4688 and PowerShell 4104 only if script reaches import/execution
+Custom rule 100521 / level 12 for exact Invoke-AllChecks or Invoke-PrivescAudit invocation
 ```
 
 Validated Dashboard filter:
 
 ```text
 agent.id:"004" AND rule.id:"62123" AND data.win.system.eventRecordID:"1284"
+```
+
+Interactive full-audit detection filter:
+
+```text
+agent.id:"004" AND rule.id:"100521"
 ```
 
 ## False-positive control
@@ -68,12 +79,29 @@ tests/results/powerup_credssp_retest_2026-08-06.md
 Wazuh rule 91823 / level 14 / PowerShell record 100167
 ```
 
-Full closure of the two denied host checks requires a proven interactive low-privilege Yassine session. Do not grant administrative rights merely to force them.
+The interactive closure completed on 2026-08-06. `Invoke-AllChecks` ran from a
+local medium-integrity Yassine shell; service-check records `104676`, `104681`,
+and `126085` reached Wazuh. Exact invocation record `104573` exposed an alerting
+gap. Custom rule `100521` was then validated with harmless positive record
+`131587`, level 12. Documentation-string record `131678` stayed quiet. Exact
+index proof returned one document. Evidence:
 
-## Cleanup
+```text
+tests/results/powerup_interactive_detection_validation_2026-08-06.md
+```
+
+Reported `edgeupdate`/`edgeupdatem` paths are not classified as exploitable:
+PowerUp identified permissions on `C:\`, not proven write access to the quoted
+binary under Program Files. The user-owned WindowsApps PATH result likewise
+does not prove a privileged DLL load.
+
+## Retention and optional cleanup
+
+Retain `power.ps1`, supporting tools, and useful vulnerable configuration by
+default for reproduction. Run cleanup only when explicitly requested or needed
+for test validity or containment outside the isolated lab.
 
 ```powershell
 Remove-Item "$env:TEMP\PowerSploitLab" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "$env:TEMP\power.ps1" -Force -ErrorAction SilentlyContinue
 ```
-
-Verify directory/process absence, Defender enabled, Wazuh running, and no rule `203` queue loss.

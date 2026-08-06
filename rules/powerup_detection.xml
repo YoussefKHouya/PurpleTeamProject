@@ -1,0 +1,14 @@
+<group name="windows,powershell,powerup,privilege_escalation_discovery,">
+  <!-- Exact PowerUp full-audit invocation; filename-independent and excludes definitions/docs. -->
+  <rule id="100521" level="12">
+    <if_sid>91802</if_sid>
+    <field name="win.system.eventID">^4104$</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)^\s*(?:&amp;\s*)?(?:Invoke-AllChecks|Invoke-PrivescAudit)\b(?:\s+-(?:Format|HTMLReport)\b[^\r\n;|]*)?\s*(?:\|[^\r\n;]+)?\s*$</field>
+    <description>PowerUp comprehensive privilege-escalation audit invoked from PowerShell</description>
+    <mitre>
+      <id>T1059.001</id>
+      <id>T1007</id>
+    </mitre>
+    <group>powerup_full_audit,high_confidence,</group>
+  </rule>
+</group>

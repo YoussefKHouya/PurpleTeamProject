@@ -13,9 +13,13 @@ Defender block during retest:           NO
 Wazuh native detection:                 PASS (91823 / level 14)
 Dashboard confirmation:                 PENDING operator view
 Target artifact/process cleanup:        PASS
-CredSSP rollback:                        DEFERRED by operator until lab closure
+CredSSP retention:                       INTENTIONAL for later lab work
 Overall: PARTIAL — execution proven; two host checks limited by token/context
 ```
+
+This remote-session verdict remains accurate for the CredSSP execution context.
+The host-check limitation was later closed from a genuine local Yassine shell;
+see `powerup_interactive_detection_validation_2026-08-06.md`.
 
 This behavioral retest does not replace the original Defender prevention result. The original `HackTool:PowerShell/EventVwrBypass` event and native Wazuh rule `62123` remain valid.
 
@@ -65,7 +69,10 @@ HKCU AlwaysInstallElevated: absent
 Exploitable: false
 ```
 
-The two denied checks are an execution-context limitation, not Defender prevention. A future full host-recon closure should use a proven interactive low-privilege Yassine session, then repeat only those two checks.
+The two denied checks were an execution-context limitation, not Defender
+prevention. A later interactive low-privilege Yassine run completed the host
+audit and is documented separately in
+`powerup_interactive_detection_validation_2026-08-06.md`.
 
 No matching Defender `1116/1117` event occurred in either behavioral run. Final Defender real-time, behavior, IOAV, and tamper protections were enabled.
 
@@ -105,4 +112,6 @@ CredSSP client/server: enabled
 Delegation target: wsman/WIN01.SIMULATION.LOCAL only
 ```
 
-CredSSP remains enabled by explicit operator direction until the broader lab phase closes. It must then be disabled and the exact fresh-credential delegation policy removed.
+CredSSP remains enabled by explicit operator direction for reproducible later
+lab work, restricted to `wsman/WIN01.SIMULATION.LOCAL`. No rollback is required
+unless the operator requests it or the isolated-lab boundary changes.
