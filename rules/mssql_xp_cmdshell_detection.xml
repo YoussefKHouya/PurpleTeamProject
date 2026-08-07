@@ -4,7 +4,7 @@
   <rule id="100539" level="5">
     <if_sid>60600</if_sid>
     <field name="win.system.eventID">^15457$</field>
-    <field name="win.system.providerName" type="pcre2">(?i)^MSSQL(?:\$[A-Za-z0-9_.-]+)?$</field>
+    <field name="win.system.providerName" type="pcre2">(?i)^(?:MSSQLSERVER|MSSQL(?:\$[A-Za-z0-9_.-]+)?)$</field>
     <field name="win.system.message" type="pcre2">(?i)Configuration option ['\"]xp_cmdshell['\"] changed from [0-9]+ to [0-9]+</field>
     <description>Microsoft SQL Server xp_cmdshell configuration state changed: $(win.system.message)</description>
     <mitre>
