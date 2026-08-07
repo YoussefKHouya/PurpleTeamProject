@@ -135,10 +135,16 @@ Execution only:
 agent.id:004 AND rule.id:100541
 ```
 
-Validated generic marker record:
+Validated execution and configuration records:
 
 ```text
-agent.id:004 AND rule.id:100541 AND data.win.system.eventRecordID:(44020 OR 44022 OR 44077)
+agent.id:004 AND ((rule.id:(100539 OR 100540) AND data.win.system.eventRecordID:(5618 OR 5619)) OR (rule.id:100541 AND data.win.system.eventRecordID:(44020 OR 44022 OR 44077)))
+```
+
+Validated interactive false-positive control:
+
+```text
+agent.id:004 AND rule.id:100339 AND data.win.system.eventRecordID:44211
 ```
 
 ## Evidence checks

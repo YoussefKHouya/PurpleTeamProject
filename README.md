@@ -102,7 +102,7 @@ HTTP credential exfil:      exact receiver integrity + rules 100531/100532 valid
 DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
 Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
 AMSI bypass attempt:        Defender prevention + rule 100538 + harmless AMSI-text FP validated
-MSSQL xp_cmdshell:          SQL Express execution + rule 100541 live validated; enablement layer pending fresh live alert
+MSSQL xp_cmdshell:          rules 100539-100541 + payload independence + FP boundaries + index delivery validated
 ```
 
 ## Workflow

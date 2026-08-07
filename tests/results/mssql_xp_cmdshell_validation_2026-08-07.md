@@ -8,15 +8,16 @@ xp_cmdshell OS execution:              PASS
 Rule 100541 live alert:                PASS
 Rule payload independence:             PASS
 Manager XML/parser validation:         PASS
-Rules 100539/100540 fresh live alert:   PENDING
-Interactive false-positive telemetry:   UNGRADED — marker absent from archives
-Dashboard/index document confirmation:  NOT RECORDED
+Rules 100539/100540 fresh live alert:   PASS
+Normal-SQL false-positive test:          PASS
+Interactive-CMD false-positive test:    PASS
+Indexer document confirmation:          PASS
 ```
 
-The execution detection is complete and live-proven. Configuration enablement
-rules use exact live Event `15457` fields captured before deployment, but have not
-yet received a fresh post-deployment enablement event. Do not represent replay or
-parser validation as a fresh endpoint alert.
+All three MSSQL rules are live-proven. Fresh post-deployment disable and enable
+events selected `100539` and `100540`; normal SQL and an interactive user-launched
+CMD control did not select `100541`. OpenSearch contains the exact configuration
+and execution alert documents.
 
 ## Environment
 
@@ -27,9 +28,10 @@ SQL service identity: NT SERVICE\MSSQL$SQLEXPRESS
 Wazuh manager: 4.14.6
 ```
 
-SQL TCP `1433` and WinRM `5985` were closed from Kali, so SQL execution remained
-local to WIN01. Kali was used only as the controlled management path to Wazuh. No
-firewall or SQL network exposure was added.
+SQL TCP `1433` remained closed from Kali. WinRM TCP became reachable, but the
+configured account was denied shell authorization, so SQL execution remained local
+to WIN01. Kali was used only as the controlled management path to Wazuh. No firewall
+or SQL network exposure was added.
 
 ## Live telemetry
 
@@ -44,6 +46,20 @@ System time:    2026-08-07T10:40:10.7963194Z
 Message:        Configuration option 'xp_cmdshell' changed from 0 to 1.
 Decoded data:   xp_cmdshell, 0, 1
 ```
+
+The final post-deployment configuration test toggled `xp_cmdshell` from enabled to
+disabled and back to enabled. It produced two fresh Application events:
+
+```text
+Record 5618: Event 15457 / rule 100539 / level 5
+Message: Configuration option 'xp_cmdshell' changed from 1 to 0
+
+Record 5619: Event 15457 / rule 100540 / level 12
+Message: Configuration option 'xp_cmdshell' changed from 0 to 1
+```
+
+Both appeared in manager `alerts.json` and the
+`wazuh-alerts-4.x-2026.08.07` OpenSearch index.
 
 Initial execution returned:
 
@@ -113,6 +129,9 @@ Manager wazuh-analysisd -t:          PASS
 Manager restart via wazuh-control:   PASS
 wazuh-analysisd/remoted/db/modulesd: RUNNING
 WIN01 agent 004 after reconnect:      Active
+Rule 100539 fresh disable alert:      PASS / record 5618
+Rule 100540 fresh enable alert:       PASS / record 5619
+OpenSearch exact-document query:      PASS / 5 documents
 ```
 
 Attempting to replay archived Event `5605` with `wazuh-logtest` decoded it as generic
@@ -132,6 +151,12 @@ All MSSQL layers:
 agent.id:004 AND rule.id:(100539 OR 100540 OR 100541)
 ```
 
+Exact live-validated records:
+
+```text
+agent.id:004 AND ((rule.id:(100539 OR 100540) AND data.win.system.eventRecordID:(5618 OR 5619)) OR (rule.id:100541 AND data.win.system.eventRecordID:(44020 OR 44022 OR 44077)))
+```
+
 ## False-positive boundary
 
 Rule `100541` requires all of:
@@ -143,21 +168,26 @@ new process basename cmd.exe
 command line containing /c
 ```
 
-Normal SQL queries do not create that process relationship. Interactive `cmd.exe`
-execution has a different parent. A dedicated live negative should be rerun if the
-rule is later broadened.
+The final normal SQL query returned `WIN01\SQLEXPRESS` and database `master` without
+creating a SQL Server child CMD event or selecting `100541`.
 
-After deployment, the operator reported running
-`MSSQL_XP_CMDSHELL_FALSE_POSITIVE`. Agent `004` was Active, but two bounded manager
-searches found the marker zero times in both `archives.json` and `alerts.json`,
-including a 120,000-line window. Because the source event was absent, this test is
-not graded PASS or FAIL and no false-positive claim is made from it.
+The interactive control ran as `WIN01\adam.wilson` and emitted marker
+`MSSQL_XP_CMDSHELL_FP_FINAL_20260807`. Its Security 4688 record `44211` showed
+`powershell.exe -> cmd.exe /d /c ...` and selected generic CMD rule `100339`, level
+8—not MSSQL rule `100541`. Sysmon records `62295`/`62296` independently preserved
+the CMD and `whoami.exe` process chain. This closes the previous ungraded control
+with source telemetry present.
 
-Manager `alerts.json` proves alert creation for the MSSQL records above. A matching
-Dashboard/index document was not independently captured during this phase; the
-Dashboard gate is therefore `NOT RECORDED`, not implied by the query text.
+The operator command's trailing `Get-Date -AsUTC` failed because Windows PowerShell
+5.1 does not support that parameter. It ran after the SQL toggle, normal query, and
+CMD control, so it did not invalidate any test action or event.
+
+Manager `alerts.json` and the OpenSearch alerts index both contain records `5618`,
+`5619`, `44020`, `44022`, and `44077` under the expected custom rule IDs. Dashboard
+UI rendering was not separately captured; index-document delivery is proven.
 
 ## Final state
 
-The vulnerable SQL configuration and any controlled canary are retained unless the
-operator explicitly performs the cleanup in `tests/mssql_xp_cmdshell_cmd.md`.
+`xp_cmdshell` ended enabled and is deliberately retained as isolated-lab posture for
+follow-on exercises. The earlier temp-canary cleanup state was not rechecked; the
+playbook retains the explicit cleanup command.

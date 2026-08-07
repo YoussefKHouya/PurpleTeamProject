@@ -1370,15 +1370,18 @@ Post-fix controlled file write/read record `44022` and competing `whoami` record
 does not depend on the marker payload. The corresponding `whoami.exe` child was
 record `44079` under native rule `67027`.
 
-Rule `100541` is live-positive proven. Rules `100539`/`100540` use exact live
-pre-deployment fields but still require a fresh post-deployment enablement alert.
-Archived-event `wazuh-logtest` replay decoded as generic JSON and cannot substitute
-for live Windows Application parent-rule traversal. A live ordinary-command
-false-positive test also remains required before declaring the complete rule set
-finished.
+Fresh post-deployment Application records `5618` and `5619` selected configuration
+rules `100539` (disable, level 5) and `100540` (enable, level 12). A normal SQL query
+returned the expected server/database without `100541`. The interactive false-
+positive command produced Security 4688 record `44211` with
+`powershell.exe -> cmd.exe`, selected generic rule `100339`, and did not select
+`100541`; Sysmon records `62295`/`62296` preserved the same process chain.
 
-Manager `alerts.json` proves these MSSQL alerts. Dashboard/index document
-confirmation was not recorded and must not be inferred from the saved queries.
+Manager `alerts.json` and the OpenSearch alerts index contain exact documents for
+records `5618`, `5619`, `44020`, `44022`, and `44077`. All three custom rules,
+payload independence, sibling precedence, configuration transitions, false-positive
+boundaries, and index delivery are validated. `xp_cmdshell` remains enabled as
+retained isolated-lab posture. Verdict: **COMPLETE / PASS**.
 
 Artifacts:
 

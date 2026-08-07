@@ -304,6 +304,14 @@ Exact manager-validated marker, file-impact, and competing-payload records:
 
 agent.id:004 AND rule.id:100541 AND data.win.system.eventRecordID:(44020 OR 44022 OR 44077)
 
+Exact live-validated configuration transitions:
+
+agent.id:004 AND rule.id:(100539 OR 100540) AND data.win.system.eventRecordID:(5618 OR 5619)
+
+Interactive-CMD false-positive control (generic CMD rule, not MSSQL execution):
+
+agent.id:004 AND rule.id:100339 AND data.win.system.eventRecordID:44211
+
 Inspect these fields on rule `100541`:
 
 - `data.win.eventdata.parentProcessName` — SQL Server `sqlservr.exe`
@@ -311,11 +319,11 @@ Inspect these fields on rule `100541`:
 - `data.win.eventdata.commandLine` — `/c <command>`
 - `data.win.eventdata.subjectUserName` — SQL service identity
 
-Validation note: rule `100541` is live-proven. Rules `100539`/`100540` were built from
-live pre-deployment Application event `15457` telemetry and passed deployed parser
-validation; a fresh post-deployment enablement alert remains pending. Manager
-`alerts.json` proof exists for `100541`; MSSQL Dashboard/index document confirmation
-was not recorded during this phase.
+Validation note: rules `100539`, `100540`, and `100541` are live-proven. Fresh
+post-deployment records `5618`/`5619` validate disable/enable transitions. Interactive
+CMD record `44211` selected generic rule `100339` rather than `100541`. Manager
+`alerts.json` and the OpenSearch alerts index contain the exact MSSQL custom-rule
+documents; Dashboard UI rendering was not separately captured.
 
 TROUBLESHOOTING EMPTY RESULTS
 -----------------------------
