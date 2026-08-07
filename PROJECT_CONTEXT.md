@@ -1351,6 +1351,44 @@ deployed/repository hash equality passed; cleanup was unnecessary because execut
 was blocked. Evidence: `tests/results/amsi_bypass_validation_2026-08-06.md`.
 Verdict: **PREVENTION PASS / DETECTION PASS**.
 
+## MSSQL xp_cmdshell detection — 2026-08-07
+
+SQL Server 2022 Express on WIN01 executed `xp_cmdshell` under
+`NT SERVICE\\MSSQL$SQLEXPRESS`. Pre-deployment Application event `15457`, record
+`5605`, captured `xp_cmdshell` changing from `0` to `1`. Security `4688` proved the
+execution chain `sqlservr.exe -> cmd.exe /c ...`.
+
+Rules `100539` through `100541` were added. Initial rule `100541` inherited from
+native `67027`, but repository child `100316` won sibling selection. Inheriting from
+the normalized CMD base `100300` fixed the chain. The payload-independent marker
+`echo XP_CMDSHELL_RULE_RETEST` produced record `44020`, rule `100541`, level `13`,
+MITRE `T1505.001` and `T1059.003`. Local XML, duplicate-ID, manager parser, restart,
+daemon, and agent-health checks passed.
+
+Post-fix controlled file write/read record `44022` and competing `whoami` record
+`44077` also selected `100541`, proving the corrected child outranks `100316` and
+does not depend on the marker payload. The corresponding `whoami.exe` child was
+record `44079` under native rule `67027`.
+
+Rule `100541` is live-positive proven. Rules `100539`/`100540` use exact live
+pre-deployment fields but still require a fresh post-deployment enablement alert.
+Archived-event `wazuh-logtest` replay decoded as generic JSON and cannot substitute
+for live Windows Application parent-rule traversal. A live ordinary-command
+false-positive test also remains required before declaring the complete rule set
+finished.
+
+Manager `alerts.json` proves these MSSQL alerts. Dashboard/index document
+confirmation was not recorded and must not be inferred from the saved queries.
+
+Artifacts:
+
+```text
+rules/mssql_xp_cmdshell_detection.xml
+tests/mssql_xp_cmdshell_cmd.md
+tests/results/mssql_xp_cmdshell_validation_2026-08-07.md
+dashboard_queries.md
+```
+
 ## Collaboration terms
 
 - Say “false-positive tests,” not “negative controls.”

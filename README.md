@@ -25,6 +25,14 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/asrep_roasting_detection.xml` | `tests/asrep_cmd.md` |
 | `rules/lsass_credential_dump_detection.xml` | `tests/lsass_cmd.md` |
 | `rules/ntds_credential_dump_detection.xml` | `tests/ntds_credential_dump_cmd.md` |
+| `rules/rbcd_detection.xml` | `tests/RBCD_cmd.md` |
+| `rules/shadow_credentials_detection.xml` | `tests/shadowCredentials_cmd.md` |
+| `rules/certighost_detection.xml` | `tests/certighost_cmd.md` |
+| `rules/arp_spoofing_detection.xml` | `tests/arp_spoofing_cmd.md` |
+| `rules/ipv6_wpad_detection.xml` | `tests/ipv6_wpad_detection_cmd.md` |
+| `rules/winpeas_detection.xml` | `tests/winpeas_cmd.md` |
+| `rules/lolbins_detection.xml` | `tests/lolbin_cmd.md` |
+| `rules/process_injection_detection.xml` | `tests/process_injection_cmd.md` |
 | `rules/tcp_scan_detection.xml` | `tests/tcp_scan_watcher_cmd.md` |
 | `rules/adpeas_detection.xml` | `tests/adpeas_cmd.md` |
 | `rules/powerup_detection.xml` | `tests/powersploit_powerup_cmd.md` |
@@ -35,6 +43,7 @@ Every versioned rule XML has one command playbook under `tests/`.
 | `rules/dns_exfiltration_detection.xml` | `tests/dns_exfiltration_cmd.md` |
 | `rules/defender_tampering_detection.xml` | `tests/defender_tampering_cmd.md` |
 | `rules/amsi_bypass_detection.xml` | `tests/amsi_bypass_cmd.md` |
+| `rules/mssql_xp_cmdshell_detection.xml` | `tests/mssql_xp_cmdshell_cmd.md` |
 
 PowerView preserves proven native Defender coverage. SharpView additionally uses
 custom named-tool rule `100522` and filename-independent semantic rule `100523`.
@@ -62,7 +71,8 @@ tests/chisel_cmd.md
 
 Each playbook contains prerequisites, bounded attack-trigger commands, expected
 Wazuh rule IDs, local telemetry checks, dashboard filters, false-positive
-controls where applicable, and cleanup.
+controls where applicable, and cleanup. The consolidated query index is
+`dashboard_queries.md`.
 
 Historical validation evidence remains under `tests/results/`; it is separate
 from reproducible command playbooks.
@@ -92,6 +102,7 @@ HTTP credential exfil:      exact receiver integrity + rules 100531/100532 valid
 DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
 Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
 AMSI bypass attempt:        Defender prevention + rule 100538 + harmless AMSI-text FP validated
+MSSQL xp_cmdshell:          SQL Express execution + rule 100541 live validated; enablement layer pending fresh live alert
 ```
 
 ## Workflow
