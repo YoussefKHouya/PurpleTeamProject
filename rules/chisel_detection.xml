@@ -1,5 +1,5 @@
-<!-- Chisel detection derived from WIN01 Sysmon Event 1 records 53885 and 53901. -->
-<group name="windows,sysmon,chisel,tunneling,">
+<!-- Generic tunnel behavior plus pinned Chisel detection from WIN01 records 53885/53901. -->
+<group name="windows,sysmon,tunneling,tunnel_behavior,">
   <!--
     Build-independent behavior visibility. This does not attribute the executable to
     Chisel; it identifies client tunnel syntax from a user-writable executable path.
@@ -15,7 +15,9 @@
     </mitre>
     <group>tunnel,behavioral_visibility,user_writable_path,</group>
   </rule>
+</group>
 
+<group name="windows,sysmon,chisel,tunneling,">
   <rule id="100525" level="10">
     <if_sid>61603</if_sid>
     <field name="win.eventdata.hashes" type="pcre2">(?i)(?:^|,)SHA256=333E76E0F05B84035396F62990C8E84A31E23A5A43E99766F8D922C634F512E3(?:,|$)</field>

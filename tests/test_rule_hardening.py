@@ -15,6 +15,15 @@ def load_rules(filename: str) -> dict[str, ET.Element]:
     return {rule.attrib["id"]: rule for rule in root.iter("rule")}
 
 
+def containing_group(filename: str, rule_id: str) -> ET.Element:
+    text = (RULES / filename).read_text(encoding="utf-8")
+    root = ET.fromstring(f"<root>{text}</root>")
+    for group in root.findall("group"):
+        if any(rule.attrib.get("id") == rule_id for rule in group.iter("rule")):
+            return group
+    raise AssertionError(f"Rule {rule_id} has no containing group")
+
+
 def child_text(rule: ET.Element, tag: str) -> str | None:
     child = rule.find(tag)
     return child.text if child is not None else None
@@ -50,9 +59,20 @@ class RuleHardeningTests(unittest.TestCase):
         generic = rules["100542"]
         bounded = rules["100524"]
         self.assertEqual(child_text(generic, "if_sid"), "61603")
+        self.assertIsNone(generic.find("mitre"))
+        self.assertNotIn("discovery", containing_group("seatbelt_detection.xml", "100542").attrib["name"].lower())
         self.assertIsNotNone(generic.find("field[@name='win.eventdata.originalFileName']"))
         self.assertIsNotNone(generic.find("field[@name='win.eventdata.product']"))
         self.assertEqual(child_text(bounded, "if_sid"), "100542")
+        self.assertIn("discovery", containing_group("seatbelt_detection.xml", "100524").attrib["name"].lower())
+        command = bounded.find("field[@name='win.eventdata.commandLine']")
+        self.assertIsNotNone(command)
+        assert command is not None
+        self.assertEqual(
+            command.text,
+            r'(?i)^\s*(?:\\?"[^"\r\n]+\\?"|\S+)\s+OSInfo\s+TokenGroups\s+PowerShell\s*$',
+        )
+        self.assertEqual([item.text for item in bounded.findall("mitre/id")], ["T1082", "T1069.002"])
 
     def test_chisel_has_hash_independent_behavior_visibility(self) -> None:
         rules = load_rules("chisel_detection.xml")
@@ -63,6 +83,9 @@ class RuleHardeningTests(unittest.TestCase):
         self.assertTrue(any(f.attrib.get("name") == "win.eventdata.commandLine" for f in fields))
         self.assertFalse(any(f.attrib.get("name") == "win.eventdata.hashes" for f in fields))
         self.assertEqual(child_text(rules["100526"], "if_sid"), "100525")
+        self.assertNotIn("chisel", containing_group("chisel_detection.xml", "100543").attrib["name"].lower())
+        self.assertIn("chisel", containing_group("chisel_detection.xml", "100525").attrib["name"].lower())
+        self.assertIn("chisel", containing_group("chisel_detection.xml", "100526").attrib["name"].lower())
 
     def test_chisel_behavior_path_handles_wazuh_doubled_separators(self) -> None:
         rules = load_rules("chisel_detection.xml")
