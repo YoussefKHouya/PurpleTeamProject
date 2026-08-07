@@ -9,7 +9,8 @@
 - Commit: `392171df84472591d4eae7ebd5b1cdc96ba91377`
 - Source archive SHA-256: `c0a1fd1bdf747f7f9c47d9bf5d15ac582de6df76f192295e8b0395ace9c2b0d1`
 - Detection XML: `rules/seatbelt_detection.xml`
-- Expected custom rule: `100524`, level 12
+- Generic metadata visibility: `100542`, level 8
+- Bounded Host Recon classifier: `100524`, level 12
 
 GhostPack publishes source, not official binaries. Build pinned source on the disposable endpoint. Never substitute an untracked third-party executable.
 
@@ -108,6 +109,7 @@ Prohibited for this case: `-group=all`, credential/vault/DPAPI/browser/Wi-Fi col
 ```text
 Security 4688 / native Wazuh 67027
 Sysmon Event 1 with OriginalFileName=Seatbelt.exe and Product=Seatbelt
+Generic custom Wazuh 100542, level 8, for any module list
 Custom Wazuh 100524, level 12
 Defender 1116/1117 only if prevention occurs
 ```
@@ -115,7 +117,7 @@ Defender 1116/1117 only if prevention occurs
 Dashboard filter:
 
 ```text
-agent.id:"004" AND rule.id:"100524"
+agent.id:"004" AND rule.id:("100542" OR "100524")
 ```
 
 ## False-positive control
@@ -128,7 +130,7 @@ Copy-Item "$env:WINDIR\System32\whoami.exe" "$env:TEMP\SeatbeltNegative\Seatbelt
 & "$env:TEMP\SeatbeltNegative\Seatbelt.exe" OSInfo TokenGroups PowerShell
 ```
 
-Require Sysmon `OriginalFileName=whoami.exe`, Microsoft product metadata, generic process telemetry, and no rule `100524`.
+Require Sysmon `OriginalFileName=whoami.exe`, Microsoft product metadata, generic process telemetry, and neither rule `100542` nor `100524`.
 
 Boundary control using genuine Seatbelt metadata but an invalid extra token:
 
@@ -136,7 +138,7 @@ Boundary control using genuine Seatbelt metadata but an invalid extra token:
 & "$env:TEMP\SeatbeltLab\Seatbelt.exe" OSInfo TokenGroups PowerShell NotASeatbeltCommand
 ```
 
-Require genuine `OriginalFileName=Seatbelt.exe` and `Product=Seatbelt` telemetry, native process visibility, and no rule `100524`. This proves the command matcher accepts exactly one executable token followed by the three approved modules and end-of-string; extra tokens before, between, or after the modules remain outside this bounded rule.
+Require genuine `OriginalFileName=Seatbelt.exe` and `Product=Seatbelt` telemetry, generic rule `100542`, and no bounded rule `100524`. This proves module-independent Seatbelt coverage while the high-confidence command matcher still accepts exactly one executable token followed by the three approved modules and end-of-string.
 
 ## Retained lab state
 

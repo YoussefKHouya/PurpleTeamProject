@@ -1,5 +1,9 @@
 <group name="windows,powershell,adpeas,active_directory_discovery,">
-  <!-- Bounded adPEAS domain enumeration invocation; filename-independent. -->
+  <!--
+    Bounded adPEAS domain enumeration invocation; filename-independent.
+    Parent 91823 is deliberate: the validated CredSSP/Invoke-Command 4104 event
+    selected the native remote-execution leaf; direct/local 4104 uses 91802.
+  -->
   <rule id="100520" level="14">
     <if_sid>91823</if_sid>
     <field name="win.system.eventID">^4104$</field>

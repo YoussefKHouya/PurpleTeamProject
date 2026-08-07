@@ -4,10 +4,21 @@
   OriginalFileName/Product survive ordinary executable renaming.
 -->
 <group name="windows,sysmon,seatbelt,discovery,">
-  <rule id="100524" level="12">
+  <!-- Rename-resistant generic visibility from authentic PE metadata. -->
+  <rule id="100542" level="8">
     <if_sid>61603</if_sid>
     <field name="win.eventdata.originalFileName" type="pcre2">(?i)^Seatbelt\.exe$</field>
     <field name="win.eventdata.product" type="pcre2">(?i)^Seatbelt$</field>
+    <description>Seatbelt executable metadata detected (module-independent visibility)</description>
+    <mitre>
+      <id>T1082</id>
+      <id>T1057</id>
+    </mitre>
+    <group>seatbelt,host_recon,tool_metadata,rename_resistant,</group>
+  </rule>
+
+  <rule id="100524" level="12">
+    <if_sid>100542</if_sid>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)^\s*(?:\\?&quot;[^&quot;\r\n]+\\?&quot;|\S+)\s+OSInfo\s+TokenGroups\s+PowerShell\s*$</field>
     <description>Seatbelt performed bounded host reconnaissance for OS, token groups, and PowerShell posture</description>
     <mitre>

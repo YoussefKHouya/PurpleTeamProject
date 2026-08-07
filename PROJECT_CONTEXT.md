@@ -494,7 +494,7 @@ Wazuh 100443 / level 10: denied CertiGhost request
 CA Security 4887: certificate issued after cdc/rmd request
 Wazuh 100444 / level 15: CertiGhost probable issuance
 CA Sysmon 3: certsrv.exe non-loopback callback
-Wazuh 100445 / level 12: AD CS callback connection
+Wazuh 100445 / level 3: supporting certsrv.exe non-loopback network visibility; not standalone CertiGhost proof
 PoC: PKINIT and credential-cache indicators present; exit 0
 ```
 
@@ -1005,9 +1005,10 @@ A local medium-integrity `SIMULATION\\yassine.karimi` shell ran only `OSInfo`,
 posture output. Security record `39393` and Sysmon records `51067`/`51075`
 correlated the initial run.
 
-Custom Sysmon rule `100524`, level 12, matches rename-resistant Seatbelt PE
-metadata plus an anchored command grammar containing exactly the three approved
-modules. Initial positive record `51193` passed with Security record `39423`.
+Custom Sysmon rule `100542`, level 8, provides module-independent Seatbelt
+visibility from rename-resistant PE metadata. Its child `100524`, level 12,
+retains the anchored command grammar containing exactly the three approved
+modules. Initial bounded positive record `51193` passed with Security record `39423`.
 After independent review hardened the argument boundary, positive record `51536`
 passed; a genuine Seatbelt run with appended invalid token
 `NotASeatbeltCommand` produced Sysmon record `51546` and Security record `39533`

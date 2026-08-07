@@ -3,7 +3,7 @@
 ## Detection
 
 - XML: `rules/process_injection_detection.xml`
-- `100478` / level 10: any live Sysmon Event 8 inherited from native rule `61610`
+- `100478` / level 0, `noalert=1`: non-alerting Event 8 visibility parent inherited from native rule `61610`
 - `100479` / level 12: Event 8 where `StartFunction` is `LoadLibraryA` or `LoadLibraryW`
 - MITRE ATT&CK: `T1055`, `T1055.001`
 
@@ -75,6 +75,6 @@ The archived `full_log` fixture decodes as generic `json` under `wazuh-logtest`,
 60000 → 60004 → 61600 → 61610 → 100478 → 100479
 ```
 
-Using `<decoded_as>json</decoded_as>` was valid only for the replay fixture and never matched the live chain. Searching only for `100478` also misses the final selected child alert: the higher-confidence event is emitted as `100479`.
+Using `<decoded_as>json</decoded_as>` was valid only for the replay fixture and never matched the live chain. Rule `100478` is now deliberately non-alerting because any CreateRemoteThread Event 8 is too broad for production paging; the higher-confidence `LoadLibraryA/W` child is emitted as `100479`.
 
 Full result: `tests/results/process_injection_validation_2026-08-04.md`.

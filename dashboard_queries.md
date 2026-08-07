@@ -92,9 +92,13 @@ Rule-only query is intentional because CA enrollment identity may differ by snap
 
 rule.id:(100440 OR 100441 OR 100442 OR 100443 OR 100444 OR 100445)
 
-High-confidence attempt, denial, issuance, and callback:
+High-confidence attempt, denial, and issuance:
 
-rule.id:(100442 OR 100443 OR 100444 OR 100445)
+rule.id:(100442 OR 100443 OR 100444)
+
+Supporting CA network visibility only:
+
+rule.id:100445
 
 ARP SPOOFING — T1557.002
 ------------------------
@@ -134,7 +138,7 @@ agent.id:004 AND rule.id:(100473 OR 100474 OR 100475 OR 100476 OR 100477)
 PROCESS INJECTION — T1055
 -------------------------
 
-agent.id:004 AND rule.id:(100478 OR 100479)
+agent.id:004 AND rule.id:100479
 
 High-confidence LoadLibrary injection:
 
@@ -215,6 +219,10 @@ agent.id:004 AND rule.id:100521
 SEATBELT
 --------
 
+agent.id:004 AND rule.id:(100542 OR 100524)
+
+Bounded Host Recon classifier:
+
 agent.id:004 AND rule.id:100524
 
 PSEXEC
@@ -246,6 +254,10 @@ agent.id:001 AND rule.id:60229 AND data.win.system.eventRecordID:(30586 OR 30587
 
 CHISEL TUNNEL / SOCKS — T1572
 -----------------------------
+
+agent.id:004 AND rule.id:(100543 OR 100525 OR 100526)
+
+Known pinned Chisel build only:
 
 agent.id:004 AND rule.id:(100525 OR 100526)
 

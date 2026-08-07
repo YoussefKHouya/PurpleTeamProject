@@ -54,13 +54,13 @@
     <group>certighost,adcs,certificate_issued,authentication_certificate_abuse,</group>
   </rule>
 
-  <!-- CA network chase should leave certsrv.exe Event 3 to a non-loopback peer. -->
-  <rule id="100445" level="12">
+  <!-- Supporting CA network visibility only: ordinary CAs contact non-loopback peers. -->
+  <rule id="100445" level="3">
     <if_sid>61605</if_sid>
     <field name="win.eventdata.image" type="pcre2">(?i)\\certsrv\.exe$</field>
     <field name="win.eventdata.initiated">^true$</field>
     <field name="win.eventdata.destinationIp" type="pcre2" negate="yes">^(?:127\.0\.0\.1|::1)$</field>
-    <description>AD CS certsrv.exe initiated outbound connection to $(win.eventdata.destinationIp):$(win.eventdata.destinationPort)</description>
+    <description>Supporting AD CS network telemetry: certsrv.exe connected to $(win.eventdata.destinationIp):$(win.eventdata.destinationPort)</description>
     <mitre>
       <id>T1649</id>
     </mitre>

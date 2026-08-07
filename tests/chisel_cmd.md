@@ -64,7 +64,7 @@ Negative control—same misleading syntax, wrong binary hash:
 whoami.exe client R:127.0.0.1:18090:127.0.0.1:3389
 ```
 
-Expected: `100525` for known build; `100526` for known build plus client-forward grammar; neither rule for `whoami.exe`.
+Expected: `100525` for the known build; `100526` for the known build plus client-forward grammar. Rule `100543` provides lower-confidence, hash-independent visibility for client tunnel syntax from a user-writable executable path. The `whoami.exe` control may select `100543` because it deliberately reproduces that behavior grammar, but it must never select Chisel-attribution rules `100525` or `100526`.
 
 ## Cleanup
 

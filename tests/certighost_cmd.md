@@ -65,4 +65,4 @@ sudo python3 certighost.py \
 | 100442 | High-confidence IP-literal `cdc` request |
 | 100443 | Denied CertiGhost request, Security 4888 |
 | 100444 | Certificate issuance with both attributes, Security 4887 |
-| 100445 | `certsrv.exe` non-loopback network chase, Sysmon 3 |
+| 100445 | Level-3 supporting visibility for any `certsrv.exe` non-loopback connection, Sysmon 3; not standalone CertiGhost proof |

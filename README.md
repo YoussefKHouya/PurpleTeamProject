@@ -97,7 +97,7 @@ Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection va
 PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12
 WinRM remote execution:     validated; Wazuh 100331 level 12
 Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon gap
-Chisel reverse tunnel:      genuine low-user tunnel + rules 100525/100526 validated
+Chisel reverse tunnel:      genuine low-user tunnel + pinned rules 100525/100526 validated; generic behavior rule 100543 added
 HTTP credential exfil:      exact receiver integrity + rules 100531/100532 validated
 DNS credential exfil:       eight chunks reconstructed + rules 100534/100535 validated
 Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
