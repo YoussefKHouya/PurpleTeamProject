@@ -12,6 +12,7 @@
 - Restored deployed AS-REP RC4 child `100414` to version control.
 - Retuned single-child WinPEAS behavior rule `100471` from level 10 to level 8 and removed stale `100472` claims; retained telemetry did not support correlation.
 - Removed dead raw-audit parent `100200`; Unix-shell children continue to inherit from normalized JSON parent `100201`.
+- Corrected the curl transfer-reset boundary in PowerShell rules `100532`/`100547` to a complete whitespace-delimited option token, closing a substring evasion where a source path containing that option text suppressed the match; command-segment binding and cross-transfer rejection are unchanged, and both separator placements are now covered by regression tests.
 
 ### PowerShell
 
