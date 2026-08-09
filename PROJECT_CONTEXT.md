@@ -1319,6 +1319,20 @@ without a custom DNS-exfiltration alert. The receiver was stopped. Evidence:
 `tests/results/dns_exfiltration_validation_2026-08-06.md`. Verdict:
 **COMPLETE / PASS**.
 
+### Exfiltration rule hardening — 2026-08-09
+
+HTTP and DNS rules were redesigned on `hardening/wazuh-rule-robustness` after reviewing the live 2026-08-06 EventChannel corpus. Historical receiver byte/hash proof remains valid; the new rule revisions are deployed but require fresh local-endpoint positive and false-positive tests before their expanded coverage is called live-proven.
+
+HTTP now layers Security curl syntax bound to one HTTP/S transfer segment (`100530`), argument-bound sensitive sources in that same segment (`100531`), HTTP/S destinations bound to PowerShell curl/IWR/IRM/WebClient/BITS/HttpClient upload calls (`100532`), rename-resistant curl OriginalFileName Sysmon metadata with the same transfer binding (`100544`), and explicitly labelled same-script credential-staging/upload co-occurrence (`100545`, level 11). DNS keeps low-severity long hex or RFC 4648 Base32-compatible label visibility (`100533`), complete framed transport (`100534`), PowerShell acquisition/encoding/chunking/DNS combined behavior (`100535`, level 11), and a framing-independent same-process burst (`100546`: five encoded labels in fifteen seconds).
+
+The DNS threshold was measured from 6,901 Event 3006 records: the validated exfiltration emitted eight matching labels in under three seconds; the closest observed benign long-hex Microsoft footprint DNS burst emitted four events in fifteen seconds. Static regression tests pass, all rule XML parses, IDs are collision-free, manager parser/restart health passed, deployed hashes equal repository hashes, and WIN01 agent `004` is Active. Fresh unattended execution was blocked because management transports were closed; RDP was not hijacked and endpoint controls were not weakened. Authoritative hardening evidence and commands:
+
+```text
+tests/results/http_dns_exfiltration_hardening_2026-08-09.md
+tests/http_exfiltration_cmd.md
+tests/dns_exfiltration_cmd.md
+```
+
 ## Microsoft Defender preference tampering — 2026-08-06
 
 An Administrator PowerShell session successfully added the controlled exclusion

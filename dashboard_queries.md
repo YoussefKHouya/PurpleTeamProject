@@ -268,20 +268,20 @@ agent.id:004 AND rule.id:100526 AND data.win.system.eventRecordID:55794
 HTTP FILE EXFILTRATION
 ----------------------
 
-agent.id:004 AND rule.id:(100530 OR 100531 OR 100532)
+agent.id:004 AND rule.id:(100530 OR 100531 OR 100532 OR 100544 OR 100545)
 
-High-confidence file and script-block layers:
+Priority sensitive-source, rename-resistant, and staging layers:
 
-agent.id:004 AND rule.id:(100531 OR 100532)
+agent.id:004 AND rule.id:(100531 OR 100544 OR 100545)
 
 DNS FILE EXFILTRATION
 ---------------------
 
-agent.id:004 AND rule.id:(100533 OR 100534 OR 100535)
+agent.id:004 AND rule.id:(100533 OR 100534 OR 100535 OR 100546)
 
-Sequenced chunks and PowerShell attempt:
+Framed chunks, PowerShell behavior, and framing-independent burst:
 
-agent.id:004 AND rule.id:(100534 OR 100535)
+agent.id:004 AND rule.id:(100534 OR 100535 OR 100546)
 
 DEFENDER PREFERENCE TAMPERING — T1562.001
 -----------------------------------------

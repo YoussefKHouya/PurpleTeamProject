@@ -15,3 +15,7 @@ archives.json
 .vscode/
 .idea/
 .DS_Store
+
+# Python test artifacts
+__pycache__/
+*.py[cod]

@@ -1,40 +1,62 @@
-<!-- HTTP/HTTPS file exfiltration detection derived from WIN01 records 41593, 56013, and 156042. -->
+<!-- Layered HTTP/S upload-attempt detection derived from live WIN01 Security 4688, Sysmon Event 1, and PowerShell 4104 telemetry. -->
 <group name="windows,http_exfiltration,exfiltration,">
-  <!-- Direct curl file upload from Windows process creation telemetry. -->
+  <!-- Curl upload syntax and an HTTP/S URL must occur in the same transfer segment; transfer resets are hard boundaries. -->
   <rule id="100530" level="10">
-    <if_sid>67027</if_sid>
-    <field name="win.system.eventID">^4688$</field>
+    <if_sid>92031</if_sid>
     <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\curl\.exe$</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:\s--data-binary\s+@\S+|\s--upload-file\s+@?\S+|\s-T\s+@?\S+)</field>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)\bhttps?://\S+</field>
-    <description>Windows curl invoked with local-file upload syntax over HTTP/S by $(win.eventdata.subjectDomainName)\$(win.eventdata.subjectUserName)</description>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)))</field>
+    <description>curl local-file upload attempt syntax bound to an HTTP/S transfer segment</description>
     <mitre>
       <id>T1041</id>
     </mitre>
-    <group>data_exfiltration,http_upload,command_and_control,</group>
+    <group>data_exfiltration,http_upload,curl,upload_attempt,</group>
   </rule>
 
-  <!-- Higher-confidence user-profile document/archive upload. -->
+  <!-- Sensitive source must itself be the upload argument in the same HTTP/S curl transfer segment. -->
   <rule id="100531" level="12">
     <if_sid>100530</if_sid>
-    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:--data-binary\s+@|--upload-file\s+@?|-T\s+@?)\S*\bUsers\b\S*\.(?:txt|csv|zip|7z|rar|kdbx|docx|xlsx|pdf)(?=\s|\\?&quot;|$)</field>
-    <description>Potential sensitive user-profile file upload attempt over HTTP/S</description>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$))|--upload-file(?:=|\s+)(?:\\?&quot;@?[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@?\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$))|-T\s+(?:\\?&quot;@?[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@?\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$)))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$))|--upload-file(?:=|\s+)(?:\\?&quot;@?[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@?\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$))|-T\s+(?:\\?&quot;@?[^&quot;\r\n]+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)\\?&quot;|@?\S+\.(?:txt|csv|tsv|zip|7z|rar|kdbx|pst|ost|bak|db|sqlite|doc|docx|xls|xlsx|pdf|pem|pfx|p12|key|config|env)(?=\s|$))))</field>
+    <description>curl sensitive local-file source bound to an HTTP/S upload transfer segment</description>
     <mitre>
       <id>T1041</id>
     </mitre>
-    <group>data_exfiltration,http_upload,sensitive_file,</group>
+    <group>data_exfiltration,http_upload,sensitive_file,upload_attempt,</group>
   </rule>
 
-  <!-- Script-block evidence of credential material staged and uploaded. -->
-  <rule id="100532" level="12">
+  <!-- Each API alternative binds the HTTP/S destination to the same upload call or command segment. -->
+  <rule id="100532" level="10">
     <if_sid>91802</if_sid>
-    <field name="win.system.eventID">^4104$</field>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(?:password|recoverytoken|api[_-]?key|secret)\s*=</field>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)\bcurl(?:\.exe)?\b[^\r\n]*(?:--data-binary\s+@|--upload-file\s+@?|-T\s+@?)\S+[^\r\n]*\bhttps?://</field>
-    <description>PowerShell script block contains credential-like material and HTTP/S file-upload attempt syntax</description>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:(?:\bcurl(?:\.exe)?\b[^\r\n;]*?(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))))|\b(?:Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b(?=[^;\r\n]*\s-InFile(?:\s|:))(?=[^;\r\n]*\s-Uri(?:\s|:)\s*[&quot;']?https?://)[^;\r\n]*|\bUpload(?:File|Data)\s*\(\s*[&quot;']https?://|\bStart-BitsTransfer\b(?=[^;\r\n]*\s-TransferType\s+Upload\b)(?=[^;\r\n]*\s-Destination\s+[&quot;']?https?://)[^;\r\n]*|(?:StreamContent|ByteArrayContent)[\s\S]{0,500}\b(?:PostAsync|PutAsync)\s*\(\s*[&quot;']https?://)</field>
+    <description>PowerShell script block contains upload API indicators bound to a literal HTTP/S destination</description>
+    <mitre>
+      <id>T1041</id>
+      <id>T1059.001</id>
+    </mitre>
+    <group>data_exfiltration,http_upload,powershell,upload_attempt,</group>
+  </rule>
+
+  <!-- Rename-resistant curl attribution through Sysmon PE OriginalFileName metadata. -->
+  <rule id="100544" level="10">
+    <if_sid>61603</if_sid>
+    <field name="win.eventdata.originalFileName" type="pcre2">(?i)^curl\.exe$</field>
+    <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)))</field>
+    <description>curl OriginalFileName metadata with local-file upload syntax bound to an HTTP/S transfer segment</description>
     <mitre>
       <id>T1041</id>
     </mitre>
-    <group>data_exfiltration,http_upload,credential_material,powershell,</group>
+    <group>data_exfiltration,http_upload,curl_metadata,upload_attempt,</group>
+  </rule>
+
+  <!-- Co-occurrence, not dataflow proof: credential-like staging and an HTTP/S upload call share one script block. -->
+  <rule id="100545" level="11">
+    <if_sid>100532</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\bWriteAllLines\b|\bWriteAllText\b|\bSet-Content\b)[\s\S]{0,2000}(?:password|recoverytoken|api[_-]?key|secret|credential|token)\s*=</field>
+    <description>Credential-like text staging co-occurs with an HTTP/S upload call in one PowerShell script block</description>
+    <mitre>
+      <id>T1005</id>
+      <id>T1041</id>
+      <id>T1059.001</id>
+    </mitre>
+    <group>credential_staging,http_upload,powershell,combined_behavior,</group>
   </rule>
 </group>
