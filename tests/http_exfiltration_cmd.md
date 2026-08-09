@@ -19,7 +19,9 @@
 100531 / level 12 — immediate curl source argument has a sensitive extension
 100532 / level 10 — PowerShell curl/IWR/IRM/WebClient/BITS/HttpClient upload behavior
 100544 / level 10 — Sysmon curl OriginalFileName plus upload syntax (rename-resistant)
-100545 / level 11 — credential-like staging co-occurs with a supported HTTP/S upload call
+100545 / level 11 — credential-like staging on the environment-variable PowerShell path
+100547 / level 10 — PowerShell base-parent path for upload behavior without environment-variable child selection
+100548 / level 11 — credential-like staging on the base-parent PowerShell path
 ```
 
 All descriptions are attempt-oriented. Process and script-block telemetry do not prove that a receiver obtained bytes.

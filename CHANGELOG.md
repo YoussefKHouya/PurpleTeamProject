@@ -6,6 +6,9 @@
 
 - Corrected over-escaped Windows paths in LSASS rules `100421` and `100427`, restoring benign-reader exclusions and suppression.
 - Corrected rule `100312` UNC-share escaping and bounded `SYSVOL`, `NETLOGON`, `IPC$`, and `ADMIN$` share names.
+- Added live-observed CMD/LSASS parent and serialized-separator handling; freshly proved `100312`, `100421`, `100414`, and level-8 `100471` with false-positive tests.
+- Added HTTP PowerShell parent-path rules `100547`/`100548`, escaped-quote handling, and live upload/receiver/false-positive validation.
+- Corrected DNS atomic parent `60009`, hardened escaped PowerShell encoding matching, and calibrated `100546` to nine events after observing duplicate Event 3006 telemetry; four-query and five-query boundaries passed.
 - Restored deployed AS-REP RC4 child `100414` to version control.
 - Retuned single-child WinPEAS behavior rule `100471` from level 10 to level 8 and removed stale `100472` claims; retained telemetry did not support correlation.
 - Removed dead raw-audit parent `100200`; Unix-shell children continue to inherit from normalized JSON parent `100201`.

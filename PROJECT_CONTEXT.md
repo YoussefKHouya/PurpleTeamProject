@@ -595,18 +595,15 @@ Current deployed rules and validation status:
 
 ```text
 100470 / level 10 — direct known WinPEAS execution; live-proven
-100471 / level 8  — current lower-severity candidate configuration; the same
-                    matcher was live-proven at level 10 on 2026-08-03, while a
-                    fresh endpoint replay at level 8 remains pending
+100471 / level 8  — rename-resistant child behavior candidate; freshly live-proven
+                    with a renamed temporary PowerShell parent spawning systeminfo.exe
 ```
 
 Rule `100470` is a high-confidence known-tool indicator and is expected to miss
 a renamed executable. Rule `100471` is the lower-severity rename-resistant candidate.
-Its matcher fired historically for `Downloads\\a.exe` spawning `systeminfo.exe`, and
-`netsh.exe` was added after live telemetry showed WinPEAS also queried wireless profiles;
-those historical alerts were level 10. The current level-8 severity has parser, native
-matcher, deployment, and hash validation but no fresh endpoint alert. Do not add filename
-masquerade special cases. The attempted multi-event correlation rule `100472`
+Fresh level-8 validation used a renamed temporary PowerShell parent spawning
+`systeminfo.exe`; `where.exe` from that parent and `systeminfo.exe` from normal system
+PowerShell did not select `100471`. Do not add filename masquerade special cases. The attempted multi-event correlation rule `100472`
 was removed because actual WinPEAS telemetry produced only two matching
 children, more than two minutes apart; it was not evidence-backed. The stale XML
 header reference to `100472` was removed and no replacement frequency child was added.
@@ -1416,7 +1413,13 @@ Claude's repository-wide audit was reproduced against Wazuh 4.14.6 before change
 
 Deployed AS-REP RC4 child `100414` was restored to version control. WinPEAS candidate rule `100471` was lowered from level 10 to level 8; stale `100472` claims were removed because retained telemetry did not support a frequency threshold. Dead raw-audit parent `100200` was removed while normalized JSON parent `100201` remains the Unix-shell chain.
 
-The expanded hardening suite passed 17/17, all 26 XML files parsed, 137 IDs were unique, seven native positive/false-positive fixtures passed, manager syntax/restart/health passed, and deployed hashes match. Fresh endpoint replay remains pending because unattended WinRM returned no proof and the direct helper lacked its local `winrm` module. Evidence: `tests/results/wazuh_rule_audit_remediation_2026-08-09.md`.
+The expanded hardening suite passed 17/17. Fresh endpoint closure then proved `100312` (CMD UNC targeting), `100421` (bounded LSASS access), level-8 `100471` (renamed-parent child behavior), and fresh DC-side RC4 `100414`; unrelated-share, ordinary-parent, benign-reader/non-escalation, and authenticated AES boundaries passed. Live telemetry exposed and drove bounded parent/serialization fixes. Evidence: `tests/results/wazuh_rule_audit_remediation_2026-08-09.md`.
+
+## HTTP and DNS exfiltration live closure — 2026-08-09
+
+Controlled HTTP transfers reached the lab receiver with matching byte counts and SHA-256 values. Live Security 4688 and PowerShell 4104 telemetry required explicit `67027`, `91816`, and base `91802` paths; final rules `100530`–`100545` plus split base-path rules `100547`/`100548` passed upload positives and pure/cross-transfer false-positive tests.
+
+Fresh DNS Client 3006 telemetry proved atomic `100533`, framed `100534`, combined PowerShell `100535`, and burst `100546`. The live parent is Windows informational rule `60009`, not unrelated File Replication parent `64100`. WIN01 emits two 3006 records per query, so `100546` was calibrated to nine events: four unique queries/eight events do not alert; five unique queries/ten events do.
 
 ## Collaboration terms
 

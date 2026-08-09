@@ -2,7 +2,7 @@
 <group name="windows,dns_exfiltration,exfiltration,">
   <!-- Low-severity atomic visibility. Long hex and RFC 4648 Base32 labels occur benignly, so a single event is not high confidence. -->
   <rule id="100533" level="5">
-    <if_sid>64100</if_sid>
+    <if_sid>60009</if_sid>
     <field name="win.system.channel">^Microsoft-Windows-DNS-Client/Operational$</field>
     <field name="win.system.eventID">^3006$</field>
     <field name="win.eventdata.queryName" type="pcre2">(?i)(?:^|\.)(?:[0-9a-f]{24,63}|[a-z2-7]{40,63})(?:\.|$)</field>
@@ -28,8 +28,8 @@
   <rule id="100535" level="11">
     <if_sid>91802</if_sid>
     <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(?:\bReadAllBytes\b|\bGet-Content\b[^\r\n]{0,200}-Encoding\s+Byte\b)</field>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(?:\.ToString\(['&quot;]x2['&quot;]\)|\bToBase64String\b|\bToHexString\b|\bBitConverter\b[^\r\n]{0,120}\bToString\b)</field>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\.Substring\([^)]+\)|\[[^\]]+\.\.[^\]]+\])[\s\S]{0,1500}(?:\bResolve-DnsName\b|\bnslookup(?:\.exe)?\b|\bSystem\.Net\.Dns\b|\[Net\.Dns\])</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?i)(?:\.ToString\([^)]{0,8}x2|\bToBase64String\b|\bToHexString\b|\bBitConverter\b[^\r\n]{0,120}\bToString\b)</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\.Substring\([^)]+\)|\[[^\]]+\.\.[^\]]+\])[\s\S]{0,4000}(?:\bResolve-DnsName\b|\bnslookup(?:\.exe)?\b|\bSystem\.Net\.Dns\b|\[Net\.Dns\])</field>
     <description>PowerShell script block combines file acquisition, encoding, chunking, and DNS query operations</description>
     <mitre>
       <id>T1048.003</id>
@@ -38,8 +38,8 @@
     <group>dns_exfiltration,powershell,combined_behavior,</group>
   </rule>
 
-  <!-- Corpus-calibrated framing-independent behavior: five atomic candidates from one originating process within 15 seconds. -->
-  <rule id="100546" level="12" frequency="5" timeframe="15" ignore="30">
+  <!-- Live duplicate telemetry emits two Event 3006 records per query: nine events separates five-query bursts from four-query boundaries. -->
+  <rule id="100546" level="12" frequency="9" timeframe="15" ignore="30">
     <if_matched_sid>100533</if_matched_sid>
     <same_field>win.system.processID</same_field>
     <description>Burst of encoded DNS labels from one process indicates possible DNS exfiltration</description>

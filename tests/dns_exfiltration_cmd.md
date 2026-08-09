@@ -10,10 +10,10 @@
 100533 / level 5  — atomic long hex or RFC 4648 Base32-compatible DNS label
 100534 / level 12 — sequenced session/sequence/total transport framing
 100535 / level 11 — PowerShell acquisition + encoding + chunking + DNS combined behavior
-100546 / level 12 — five encoded labels from one process inside 15 seconds
+100546 / level 12 — nine encoded-label events from one process inside 15 seconds (five live queries under duplicate Event 3006 telemetry)
 ```
 
-Rule `100546` is framing-independent. The threshold was selected from the retained 2026-08-06 corpus: the validated exfiltration emitted eight matching labels in under three seconds, while the closest observed benign long-hex burst emitted four events in fifteen seconds.
+Rule `100546` is framing-independent. Fresh WIN01 telemetry emits two Event 3006 records per query, so a threshold of nine events preserves the intended five-query boundary: five unique queries produce ten events while four produce eight. The earlier retained corpus remains useful for label-shape baselining but did not expose this live duplication behavior.
 
 ## Primary positive
 

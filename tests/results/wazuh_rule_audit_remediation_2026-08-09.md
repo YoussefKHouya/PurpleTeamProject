@@ -68,6 +68,15 @@ unix_shell_detection.xml           22c3a421b343125a7b41158993354e2c537ca3f0d6e6d
 
 Manager parser, restart, service state, permissions, and deployed hashes passed.
 
-## Limitation
+## Fresh live closure
 
-WIN01 agent `004` was Active, but unattended endpoint execution was not proven: the existing lab wrapper returned no command output and the direct helper lacked the local `winrm` module. Therefore this pass claims native matcher and deployment validation, not a fresh endpoint alert replay. DC01 and the Linux agent were disconnected, so no new AS-REP or Unix-shell endpoint event was generated.
+Authenticated WIN01 and DC01 execution subsequently closed the earlier limitation:
+
+- `100312` level 9 selected Security records `46610`/`46612`; unrelated `Public` share record `46615` did not.
+- `100421` level 10 selected Sysmon record `68056` for bounded handle-only LSASS access (`0x1010`); no dump was created. Retained Defender `0x1010` records `65709`/`66050` did not escalate, consistent with zero-level `100427` suppression.
+- `100471` freshly selected level 8 for renamed-parent `systeminfo.exe` record `46658`; records `46665`/`46669` passed child/parent boundaries.
+- Fresh DC Event 4768 RC4 telemetry selected `100414`; an authenticated AES ticket request did not.
+- Live telemetry required bounded doubled-separator handling in `100312`, native Sysmon parent `92900` for `100421`, and one/two-separator Windows paths for LSASS rules.
+- Positive alerts reached `alerts.json` and the Wazuh alerts index.
+
+All temporary handle-test, renamed-parent, UNC connection, AS-REP, and Kerberos artifacts were removed.

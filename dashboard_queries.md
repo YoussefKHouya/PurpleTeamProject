@@ -266,11 +266,11 @@ agent.id:004 AND rule.id:100526 AND data.win.system.eventRecordID:55794
 HTTP FILE EXFILTRATION
 ----------------------
 
-agent.id:004 AND rule.id:(100530 OR 100531 OR 100532 OR 100544 OR 100545)
+agent.id:"004" AND rule.id:("100530" OR "100531" OR "100532" OR "100544" OR "100545" OR "100547" OR "100548")
 
 Priority sensitive-source, rename-resistant, and staging layers:
 
-agent.id:004 AND rule.id:(100531 OR 100544 OR 100545)
+agent.id:004 AND rule.id:(100531 OR 100544 OR 100545 OR 100548)
 
 DNS FILE EXFILTRATION
 ---------------------

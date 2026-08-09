@@ -2,7 +2,7 @@
 <group name="windows,http_exfiltration,exfiltration,">
   <!-- Curl upload syntax and an HTTP/S URL must occur in the same transfer segment; transfer resets are hard boundaries. -->
   <rule id="100530" level="10">
-    <if_sid>92031</if_sid>
+    <if_sid>92031,67027</if_sid>
     <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\curl\.exe$</field>
     <field name="win.eventdata.commandLine" type="pcre2">(?i)(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)))</field>
     <description>curl local-file upload attempt syntax bound to an HTTP/S transfer segment</description>
@@ -25,8 +25,8 @@
 
   <!-- Each API alternative binds the HTTP/S destination to the same upload call or command segment. -->
   <rule id="100532" level="10">
-    <if_sid>91802</if_sid>
-    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:(?:\bcurl(?:\.exe)?\b[^\r\n;]*?(?:(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:\\?&quot;)?https?://\S+|(?:\\?&quot;)?https?://\S+(?:(?!\s--next(?:\s|$))[^\r\n;])*?(?:--data-binary(?:=|\s+)(?:\\?&quot;@[^&quot;\r\n]+\\?&quot;|@\S+)|--upload-file(?:=|\s+)(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+)|-T\s+(?!(?:\\?&quot;)?https?://)(?:\\?&quot;@?[^&quot;\r\n]+\\?&quot;|@?\S+))))|\b(?:Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b(?=[^;\r\n]*\s-InFile(?:\s|:))(?=[^;\r\n]*\s-Uri(?:\s|:)\s*[&quot;']?https?://)[^;\r\n]*|\bUpload(?:File|Data)\s*\(\s*[&quot;']https?://|\bStart-BitsTransfer\b(?=[^;\r\n]*\s-TransferType\s+Upload\b)(?=[^;\r\n]*\s-Destination\s+[&quot;']?https?://)[^;\r\n]*|(?:StreamContent|ByteArrayContent)[\s\S]{0,500}\b(?:PostAsync|PutAsync)\s*\(\s*[&quot;']https?://)</field>
+    <if_sid>91816</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\bcurl(?:\.exe)?\b(?![^;\r\n]*\s--next(?:\s|$))(?:(?:[^;\r\n]{0,1000}(?:--data-binary(?:=|\s+)[^;\s]{0,4}@|--upload-file(?:=|\s+)(?![^;\s]{0,4}https?://)|-T\s+(?![^;\s]{0,4}https?://))[^;\r\n]{0,1000}[^;\s]{0,4}https?://)|(?:[^;\r\n]{0,1000}[^;\s]{0,4}https?://[^;\r\n]{0,1000}(?:--data-binary(?:=|\s+)[^;\s]{0,4}@|--upload-file(?:=|\s+)(?![^;\s]{0,4}https?://)|-T\s+(?![^;\s]{0,4}https?://))))|\b(?:Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b(?=[^;\r\n]{0,1000}\s-InFile(?:\s|:))(?=[^;\r\n]{0,1000}\s-Uri(?:\s|:)[^;\r\n]{0,8}https?://)[^;\r\n]{0,1000}|\bUpload(?:File|Data)\s*\(\s*[^;\r\n]{0,4}https?://|\bStart-BitsTransfer\b(?=[^;\r\n]{0,1000}\s-TransferType\s+Upload\b)(?=[^;\r\n]{0,1000}\s-Destination\s+[^;\r\n]{0,8}https?://)[^;\r\n]{0,1000}|(?:StreamContent|ByteArrayContent)[\s\S]{0,500}\b(?:PostAsync|PutAsync)\s*\(\s*[^;\r\n]{0,4}https?://)</field>
     <description>PowerShell script block contains upload API indicators bound to a literal HTTP/S destination</description>
     <mitre>
       <id>T1041</id>
@@ -58,5 +58,30 @@
       <id>T1059.001</id>
     </mitre>
     <group>credential_staging,http_upload,powershell,combined_behavior,</group>
+  </rule>
+
+  <!-- Parallel base-parent path for script blocks that do not select built-in environment-variable child 91816. -->
+  <rule id="100547" level="10">
+    <if_sid>91802</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\bcurl(?:\.exe)?\b(?![^;\r\n]*\s--next(?:\s|$))(?:(?:[^;\r\n]{0,1000}(?:--data-binary(?:=|\s+)[^;\s]{0,4}@|--upload-file(?:=|\s+)(?![^;\s]{0,4}https?://)|-T\s+(?![^;\s]{0,4}https?://))[^;\r\n]{0,1000}[^;\s]{0,4}https?://)|(?:[^;\r\n]{0,1000}[^;\s]{0,4}https?://[^;\r\n]{0,1000}(?:--data-binary(?:=|\s+)[^;\s]{0,4}@|--upload-file(?:=|\s+)(?![^;\s]{0,4}https?://)|-T\s+(?![^;\s]{0,4}https?://))))|\b(?:Invoke-WebRequest|Invoke-RestMethod|iwr|irm)\b(?=[^;\r\n]{0,1000}\s-InFile(?:\s|:))(?=[^;\r\n]{0,1000}\s-Uri(?:\s|:)[^;\r\n]{0,8}https?://)[^;\r\n]{0,1000}|\bUpload(?:File|Data)\s*\(\s*[^;\r\n]{0,4}https?://|\bStart-BitsTransfer\b(?=[^;\r\n]{0,1000}\s-TransferType\s+Upload\b)(?=[^;\r\n]{0,1000}\s-Destination\s+[^;\r\n]{0,8}https?://)[^;\r\n]{0,1000}|(?:StreamContent|ByteArrayContent)[\s\S]{0,500}\b(?:PostAsync|PutAsync)\s*\(\s*[^;\r\n]{0,4}https?://)</field>
+    <field name="win.eventdata.scriptBlockText" type="pcre2" negate="yes">(?i)(\$env\:TEMP|\$env\:USERNAME|\$env\:COMPUTERNAME|\$env\:USERDOMAIN|\$PID)</field>
+    <description>PowerShell base-parent script block contains upload API indicators bound to a literal HTTP/S destination</description>
+    <mitre>
+      <id>T1041</id>
+      <id>T1059.001</id>
+    </mitre>
+    <group>data_exfiltration,http_upload,powershell,upload_attempt,base_parent_path,</group>
+  </rule>
+
+  <rule id="100548" level="11">
+    <if_sid>100547</if_sid>
+    <field name="win.eventdata.scriptBlockText" type="pcre2">(?is)(?:\bWriteAllLines\b|\bWriteAllText\b|\bSet-Content\b)[\s\S]{0,2000}(?:password|recoverytoken|api[_-]?key|secret|credential|token)\s*=</field>
+    <description>Credential-like text staging on the PowerShell base-parent path co-occurs with an HTTP/S upload call in one PowerShell script block</description>
+    <mitre>
+      <id>T1005</id>
+      <id>T1041</id>
+      <id>T1059.001</id>
+    </mitre>
+    <group>credential_staging,http_upload,powershell,combined_behavior,base_parent_path,</group>
   </rule>
 </group>

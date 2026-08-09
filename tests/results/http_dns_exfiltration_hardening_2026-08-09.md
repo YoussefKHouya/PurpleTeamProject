@@ -154,21 +154,24 @@ modulesd:        running
 WIN01 agent 004: Active
 ```
 
-## Live-retest limitation
+## Fresh live closure
 
-The endpoint agent is active, but the available unattended management transports were closed from the manager-side route. RDP remained reachable, but this pass did not hijack an interactive desktop session or weaken endpoint firewall policy merely to force a test.
+Authenticated endpoint execution subsequently closed the earlier transport limitation.
 
-A historical EventChannel `full_log` replay was also rejected as completion evidence: `wazuh-logtest` decoded the archived JSON as generic `json`, not the live Windows EventChannel parent chain. It was not counted as a rule PASS.
+### HTTP
 
-Fresh positives and false-positive tests therefore remain explicit pending gates. Run the updated one-line controls in:
+- A controlled receiver accepted both test files with matching byte counts and SHA-256 values.
+- Live Security 4688 used parent `67027`; live PowerShell 4104 used both `91816` and base `91802` paths.
+- `100545` selected the environment-variable/staging upload block; `100547` selected the base-parent literal IWR upload block. Split base-path staging rule `100548` preserves the corresponding higher-severity path.
+- Pure GET/version/inline-body and cross-transfer FTP/`--next` controls produced telemetry without custom HTTP alerts.
+- Escaped quote serialization (`\"http://...\"`) was incorporated without broadening statement or transfer boundaries.
 
-```text
-tests/http_exfiltration_cmd.md
-tests/dns_exfiltration_cmd.md
-```
+### DNS
 
-Required closure order:
+- Fresh combined PowerShell behavior selected `100535` (record `198313`).
+- Framed DNS Client events selected `100534`, including records `323757`–`323839`.
+- The correct live Windows informational parent is `60009`; `64100` is an unrelated File Replication parent and was removed.
+- WIN01 emitted duplicate Event 3006 records per query. Rule `100546` was recalibrated to nine events: four unique queries/eight records produced zero burst alerts; five unique queries/ten records produced one `100546` alert at record `324413`.
+- Ordinary DNS and displaced framing produced no high-confidence framed/combined alert; isolated encoded labels remain intentionally visible only through atomic level-5 `100533`.
 
-```text
-local endpoint trigger -> archives.json -> updated custom alert -> indexed document -> false-positive tests
-```
+Repository regressions, native parser/deployment checks, false-positive tests, and cleanup are required final gates; endpoint execution is no longer pending.
