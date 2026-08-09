@@ -30,7 +30,7 @@ Ran 17 tests
 OK
 
 XML_PARSE=PASS 26
-DUPLICATE_IDS=PASS 137
+DUPLICATE_IDS=PASS 139
 git diff --check: PASS
 ```
 
@@ -52,7 +52,7 @@ Temporary rules were loaded on Wazuh `4.14.6`; `wazuh-analysisd -t` passed. The 
 
 Historical manager alerts also preserve three genuine RC4 child selections for rule `100414`: Event 4768 records `20682`, `20683`, and `20689`, all level 12 with `ticketEncryptionType=0x17`.
 
-## Deployment
+## Initial audit-remediation deployment
 
 The five corrected rule files were backed up and deployed to `/var/ossec/etc/rules/` with owner/group `root:wazuh` and mode `0640`:
 
@@ -66,7 +66,7 @@ winpeas_detection.xml              db06d7aeae5fd80d5810adf8267ee1363f695555904be
 unix_shell_detection.xml           22c3a421b343125a7b41158993354e2c537ca3f0d6e6d335862698cbd9c6e4fc
 ```
 
-Manager parser, restart, service state, permissions, and deployed hashes passed.
+Manager parser, restart, service state, permissions, and deployed hashes passed for this initial candidate.
 
 ## Fresh live closure
 
@@ -80,3 +80,12 @@ Authenticated WIN01 and DC01 execution subsequently closed the earlier limitatio
 - Positive alerts reached `alerts.json` and the Wazuh alerts index.
 
 All temporary handle-test, renamed-parent, UNC connection, AS-REP, and Kerberos artifacts were removed.
+
+Post-live-closure repository SHA-256 values for the two telemetry-driven rule changes are:
+
+```text
+lsass_credential_dump_detection.xml ce83ad601cf51e74592fb6e0ac4293898b5f36c583e1de6fb23930d8f1eda0fb
+cmd_detection.xml                  dbf2b90c86077c29f74e1b37dd79060ec7338ff4b891a76b547e61793856d434
+```
+
+These values supersede the initial-candidate hashes above. Final manager-side SHA-256 values matched the repository for both files; ownership/mode was `root:wazuh:0640`, and `wazuh-analysisd -t` passed.
