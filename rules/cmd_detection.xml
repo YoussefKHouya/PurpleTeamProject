@@ -273,7 +273,7 @@
   <rule id="100312" level="9">
     <if_sid>100300</if_sid>
     <field name="win.eventdata.commandLine"
-           type="pcre2">(?i)(?:\b(?:nltest(?:\.exe)?\s+/(?:dsgetdc|dclist|domain_trusts|trusted_domains)|dsquery(?:\.exe)?\s+(?:server|computer)|netdom(?:\.exe)?\s+query\s+(?:dc|trust))\b|\bnet(?:1|\.exe)?\s+view\s+/domain(?::\S+)?\b|\b(?:dir|type|pushd|net(?:1|\.exe)?\s+use)\s+\\\\\\\\[^\s\\]+\\\\(?:SYSVOL|NETLOGON|IPC\$|ADMIN\$)\b)</field>
+           type="pcre2">(?i)(?:\b(?:nltest(?:\.exe)?\s+/(?:dsgetdc|dclist|domain_trusts|trusted_domains)|dsquery(?:\.exe)?\s+(?:server|computer)|netdom(?:\.exe)?\s+query\s+(?:dc|trust))\b|\bnet(?:1|\.exe)?\s+view\s+/domain(?::\S+)?\b|\b(?:dir|type|pushd|net(?:1|\.exe)?\s+use)\s+\\\\[^\s\\]+\\(?:SYSVOL|NETLOGON|IPC\$|ADMIN\$)(?=\\|\s|$))</field>
     <description>CMD domain, trust, or domain-controller discovery detected: $(win.eventdata.commandLine)</description>
     <mitre>
       <id>T1059.003</id>

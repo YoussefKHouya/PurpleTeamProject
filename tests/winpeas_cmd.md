@@ -20,10 +20,10 @@ Run the downloaded executable from the current user Downloads directory:
 
 ```text
 100470 / level 10 — named WinPEAS executable execution
-100471 / level 10 — user-writable executable spawned a Windows discovery binary
+100471 / level 8 — lower-severity candidate: a user-writable executable spawned a Windows discovery binary
 ```
 
-A renamed executable is expected to bypass `100470` but still produce `100471` when it spawns a monitored discovery binary.
+A renamed executable is expected to bypass `100470` but still produce lower-severity candidate rule `100471` when it spawns a monitored discovery binary. No frequency child is expected: retained live telemetry did not support a defensible threshold.
 
 Verified evidence is recorded in:
 

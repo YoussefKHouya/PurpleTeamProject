@@ -52,9 +52,7 @@ Combined:
 
 (rule.id:(100411 OR 100414) AND agent.id:001) OR (rule.id:(100412 OR 100413) AND agent.id:004)
 
-Drift note: `100414` is active in the manager's deployed AS-REP rule file but is
-absent from the repository copy as of 2026-08-07. Its query is retained because the
-rule is live-deployed; reconcile that pre-existing artifact drift separately.
+Rule `100414` is versioned and deployed as the RC4 child of `100411`.
 
 LSASS CREDENTIAL DUMPING — T1003.001
 ------------------------------------

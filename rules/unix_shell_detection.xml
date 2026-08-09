@@ -1,19 +1,11 @@
 <!--
   File: unix_shell_detection.xml
-  Purpose: Hierarchical Wazuh detections for Unix shell execution from normalized Linux auditd events
-  Rule range: 100200-100239
-  Data source: auditd EXECVE/EXECVEAT records tagged wazuh_shell_exec
+  Purpose: Hierarchical Wazuh detections for normalized Linux auditd execution events
+  Rule range: 100201-100239
+  Data source: normalized auditd EXECVE/EXECVEAT JSON from the dispatcher
 -->
 
 <group name="unix_shell,audit,">
-
-  <!-- RAW AUDIT BASE: suppress noisy raw exec telemetry while retaining a parent -->
-  <rule id="100200" level="0">
-    <if_sid>80700</if_sid>
-    <field name="audit.key" type="pcre2">^wazuh_shell_exec$</field>
-    <field name="audit.success" type="pcre2">^yes$</field>
-    <description>Normalized Unix execution telemetry source.</description>
-  </rule>
 
   <!-- NORMALIZED JSON BASE -->
   <rule id="100201" level="0">

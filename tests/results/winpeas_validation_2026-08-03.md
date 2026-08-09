@@ -19,6 +19,8 @@
 100471 / level 10 — user-writable executable spawned discovery child
 ```
 
+These are the historical alert levels observed during the 2026-08-03 run. The 2026-08-09 robustness pass lowered `100471` to level 8 because one discovery child is candidate behavior, and retained telemetry did not support a frequency child.
+
 Renamed behavior proof:
 
 ```text

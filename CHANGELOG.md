@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Rule robustness remediation
+
+- Corrected over-escaped Windows paths in LSASS rules `100421` and `100427`, restoring benign-reader exclusions and suppression.
+- Corrected rule `100312` UNC-share escaping and bounded `SYSVOL`, `NETLOGON`, `IPC$`, and `ADMIN$` share names.
+- Restored deployed AS-REP RC4 child `100414` to version control.
+- Retuned single-child WinPEAS behavior rule `100471` from level 10 to level 8 and removed stale `100472` claims; retained telemetry did not support correlation.
+- Removed dead raw-audit parent `100200`; Unix-shell children continue to inherit from normalized JSON parent `100201`.
+
 ### PowerShell
 
 - Imported deployed `powershell-detection.xml` into version control.

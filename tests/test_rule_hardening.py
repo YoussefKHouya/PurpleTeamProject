@@ -50,6 +50,52 @@ class RuleHardeningTests(unittest.TestCase):
         rules = load_rules("mssql_xp_cmdshell_detection.xml")
         self.assertEqual(child_text(rules["100541"], "if_sid"), "100300")
 
+    def test_lsass_benign_reader_patterns_match_real_windows_paths(self) -> None:
+        rules = load_rules("lsass_credential_dump_detection.xml")
+        broad_exclusion = re.compile(field_pattern(rules["100421"], "win.eventdata.sourceImage"))
+        suppression = re.compile(field_pattern(rules["100427"], "win.eventdata.sourceImage"))
+
+        for path in [
+            r"C:\Windows\system32\wbem\wmiprvse.exe",
+            r"C:\Windows\system32\svchost.exe",
+            r"C:\ProgramData\Microsoft\Windows Defender\platform\4.18.25070.5-0\MsMpEng.exe",
+        ]:
+            self.assertIsNotNone(broad_exclusion.search(path), path)
+        self.assertIsNotNone(suppression.search(r"C:\Windows\system32\svchost.exe"))
+        self.assertIsNotNone(
+            suppression.search(r"C:\ProgramData\Microsoft\Windows Defender\platform\4.18.25070.5-0\MsMpEng.exe")
+        )
+        self.assertIsNone(broad_exclusion.search(r"C:\Users\Public\renamed-dumper.exe"))
+
+    def test_cmd_domain_discovery_matches_real_unc_share_syntax(self) -> None:
+        rules = load_rules("cmd_detection.xml")
+        domain_discovery = re.compile(field_pattern(rules["100312"], "win.eventdata.commandLine"))
+        for command in [
+            r"cmd.exe /c dir \\dc01\SYSVOL",
+            r"cmd.exe /c type \\dc01\NETLOGON\logon.bat",
+            r"cmd.exe /c net use \\dc01\ADMIN$",
+        ]:
+            self.assertIsNotNone(domain_discovery.search(command), command)
+        self.assertIsNone(domain_discovery.search(r"cmd.exe /c dir \\fileserver\Public"))
+
+    def test_asrep_rc4_child_is_versioned(self) -> None:
+        rules = load_rules("asrep_roasting_detection.xml")
+        rc4 = rules["100414"]
+        self.assertEqual(rc4.attrib.get("level"), "12")
+        self.assertEqual(child_text(rc4, "if_sid"), "100411")
+        self.assertEqual(field_pattern(rc4, "win.eventdata.ticketEncryptionType"), "^0x17$")
+        self.assertEqual([item.text for item in rc4.findall("mitre/id")], ["T1558.004"])
+
+    def test_winpeas_behavior_is_low_severity_without_unproven_correlation(self) -> None:
+        rules = load_rules("winpeas_detection.xml")
+        self.assertLessEqual(int(rules["100471"].attrib["level"]), 8)
+        self.assertNotIn("100472", (RULES / "winpeas_detection.xml").read_text(encoding="utf-8"))
+
+    def test_unix_shell_has_no_dead_raw_audit_parent(self) -> None:
+        rules = load_rules("unix_shell_detection.xml")
+        self.assertNotIn("100200", rules)
+        self.assertFalse(any(child_text(rule, "if_sid") == "100200" for rule in rules.values()))
+
     def test_create_remote_thread_base_is_non_alerting(self) -> None:
         rules = load_rules("process_injection_detection.xml")
         base = rules["100478"]

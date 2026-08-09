@@ -1,7 +1,8 @@
 <!-- WinPEAS / automated Windows host-enumeration detection.
      Evidence baseline: WIN01 Security Event 4688 reaches Wazuh under native rule 67027.
-     Rule 100470 detects named WinPEAS execution. Rules 100471/100472 provide
-     a rename-resistant, deliberately higher-threshold behavior signal. -->
+     Rule 100470 detects named WinPEAS execution. Rule 100471 provides a
+     rename-resistant, lower-severity behavior candidate from one discovery child.
+     No frequency child is implemented: retained telemetry did not support a threshold. -->
 <group name="windows,winpeas,discovery,">
 
   <rule id="100470" level="10">
@@ -16,10 +17,9 @@
     <group>winpeas_execution,host_discovery,</group>
   </rule>
 
-  <!-- Rename-resistant behavior: a user-writable executable spawning discovery tools.
-       One child is benign enough to remain low severity; correlate repeated children from
-       the same parent before escalating. -->
-  <rule id="100471" level="10">
+  <!-- Rename-resistant candidate behavior: a user-writable executable spawning one
+       discovery tool. One child is useful visibility but insufficient for escalation. -->
+  <rule id="100471" level="8">
     <if_sid>67027</if_sid>
     <field name="win.eventdata.parentProcessName" type="pcre2">(?i)(?:downloads|appdata|temp).*\.exe$</field>
     <field name="win.eventdata.newProcessName" type="pcre2">(?i)\\(?:whoami|systeminfo|tasklist|schtasks|ipconfig|net|netsh|wmic|reg)\.exe$</field>

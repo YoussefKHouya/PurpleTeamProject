@@ -591,22 +591,25 @@ Deployed manager file:
 /var/ossec/etc/rules/winpeas_detection.xml
 ```
 
-Live-proven rules:
+Current deployed rules and validation status:
 
 ```text
-100470 / level 10 — direct known WinPEAS executable execution
-100471 / level 10 — executable from Downloads, AppData, or Temp spawns a
-                    discovery child (whoami, systeminfo, tasklist, schtasks,
-                    ipconfig, net, netsh, wmic, or reg)
+100470 / level 10 — direct known WinPEAS execution; live-proven
+100471 / level 8  — current lower-severity candidate configuration; the same
+                    matcher was live-proven at level 10 on 2026-08-03, while a
+                    fresh endpoint replay at level 8 remains pending
 ```
 
 Rule `100470` is a high-confidence known-tool indicator and is expected to miss
-a renamed executable. Rule `100471` is the rename-resistant layer: it fired for
-`Downloads\\a.exe` spawning `systeminfo.exe`; `netsh.exe` was added after live
-telemetry showed WinPEAS also queried wireless profiles. Do not add filename
+a renamed executable. Rule `100471` is the lower-severity rename-resistant candidate.
+Its matcher fired historically for `Downloads\\a.exe` spawning `systeminfo.exe`, and
+`netsh.exe` was added after live telemetry showed WinPEAS also queried wireless profiles;
+those historical alerts were level 10. The current level-8 severity has parser, native
+matcher, deployment, and hash validation but no fresh endpoint alert. Do not add filename
 masquerade special cases. The attempted multi-event correlation rule `100472`
 was removed because actual WinPEAS telemetry produced only two matching
-children, more than two minutes apart; it was not evidence-backed.
+children, more than two minutes apart; it was not evidence-backed. The stale XML
+header reference to `100472` was removed and no replacement frequency child was added.
 
 ### LinPEAS — Linux local enumeration
 
@@ -1406,6 +1409,14 @@ tests/mssql_xp_cmdshell_cmd.md
 tests/results/mssql_xp_cmdshell_validation_2026-08-07.md
 dashboard_queries.md
 ```
+
+## Wazuh rule audit remediation — 2026-08-09
+
+Claude's repository-wide audit was reproduced against Wazuh 4.14.6 before changes. Native PCRE2 fixtures confirmed broken escaping in LSASS rules `100421`/`100427` and the UNC branch of CMD rule `100312`. The corrected CMD boundary also handles `IPC$` and `ADMIN$`, which cannot terminate on `\b`.
+
+Deployed AS-REP RC4 child `100414` was restored to version control. WinPEAS candidate rule `100471` was lowered from level 10 to level 8; stale `100472` claims were removed because retained telemetry did not support a frequency threshold. Dead raw-audit parent `100200` was removed while normalized JSON parent `100201` remains the Unix-shell chain.
+
+The expanded hardening suite passed 17/17, all 26 XML files parsed, 137 IDs were unique, seven native positive/false-positive fixtures passed, manager syntax/restart/health passed, and deployed hashes match. Fresh endpoint replay remains pending because unattended WinRM returned no proof and the direct helper lacked its local `winrm` module. Evidence: `tests/results/wazuh_rule_audit_remediation_2026-08-09.md`.
 
 ## Collaboration terms
 

@@ -34,12 +34,14 @@ backlog 0
 key=wazuh_shell_exec
 ```
 
-Level-0 telemetry parents used by every test:
+Level-0 telemetry parent used by every test:
 
 ```text
-100200 — raw tagged audit base
 100201 — normalized JSON execution parent
 ```
+
+The unused raw-audit rule `100200` was removed; this rule family consumes only
+the dispatcher's normalized JSON fields.
 
 ## Test matrix
 

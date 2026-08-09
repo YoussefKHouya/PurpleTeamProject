@@ -58,6 +58,8 @@ Wazuh's audit decoder omitted hex-encoded shell payload arguments. A tested audi
 | 100225 | 10 | Sudoers modification | T1548.003 |
 | 100226 | 9 | Crontab/cron persistence modification | T1053.003 |
 
+Historical note: rule `100200` existed during this validation but had no children. The 2026-08-09 robustness pass removed it; the validated normalized JSON chain remains rooted at `100201`.
+
 ## Positive live tests
 
 | Test | Behavior | Expected | Actual | Result |

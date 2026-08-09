@@ -21,6 +21,17 @@
     <group>asrep_roasting,credential_access,authentication_success,</group>
   </rule>
 
+  <!-- Higher-confidence RC4 AS-REP issued without pre-authentication. -->
+  <rule id="100414" level="12">
+    <if_sid>100411</if_sid>
+    <field name="win.eventdata.ticketEncryptionType">^0x17$</field>
+    <description>High-confidence AS-REP Roasting: RC4 AS-REP issued for $(win.eventdata.targetUserName) from $(win.eventdata.ipAddress)</description>
+    <mitre>
+      <id>T1558.004</id>
+    </mitre>
+    <group>rc4_asrep,high_confidence,credential_access,</group>
+  </rule>
+
   <!-- Treat any execution of the Rubeus credential-access tool as malicious. -->
   <rule id="100412" level="12">
     <if_sid>67027</if_sid>
