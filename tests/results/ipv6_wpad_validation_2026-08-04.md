@@ -63,9 +63,28 @@ agent.id:004 AND (rule.id:100460 OR rule.id:100461)
 - Windows DHCPv6/DNS state was returned to the normal lab configuration.
 - No persistent rogue service was installed.
 
-## Limitation
+## Fresh live closure — 2026-09-01
 
-During final review, Wazuh reported agent `004` as disconnected and both known WIN01 WinRM paths were unavailable. Therefore no fresh live post-fix `100461` alert or final false-positive replay was proven. Historical raw telemetry proves the fields, while XML/syntax/hash checks prove the deployed rule artifact; this is not equivalent to live alert proof.
+The historical final-review limitation was closed after WIN01 agent `004` returned
+Active and the deployed rule hash was reconciled with the repository.
+
+```text
+Positive alert
+Timestamp:      2026-09-01T11:15:09.652+0000
+Agent:          WIN01 / 004
+Rule:           100461 / level 10
+Event record ID: 340046
+Query name:     wpad.SIMULATION.LOCAL
+Manager path:   alerts.json
+```
+
+A bounded false-positive control generated the unique DNS query
+`benign-dns-593f7414b173.simulation.local`. WIN01 produced fresh DNS Client
+Operational archive records `341771` through `341783`, including Event `3020`.
+No Wazuh alert was generated for that query, and no `100461` selection occurred.
+
+This closes the live-positive and false-positive gap. Index/Dashboard evidence
+remains a separate delivery check and is not implied by manager-side alert proof.
 
 ## Artifacts
 

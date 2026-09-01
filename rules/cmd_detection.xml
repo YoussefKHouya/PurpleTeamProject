@@ -41,7 +41,7 @@
     <field name="win.eventdata.commandLine"
            type="pcre2">(?i)\b(?:certutil(?:\.exe)?\s+[^\r\n]*(?:-urlcache|-verifyctl)|bitsadmin(?:\.exe)?\s+[^\r\n]*/transfer|curl(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://|wget(?:\.exe)?\s+[^\r\n]*(?:https?|ftp)://)\b</field>
     <field name="win.eventdata.commandLine"
-           type="pcre2">(?i)(?:&amp;&amp;|&amp;|\|)\s*(?:start\s+)?(?:["']?[^\s"']+\.(?:exe|dll|bat|cmd|com|msi|ps1)["']?|rundll32|regsvr32|msiexec|powershell|pwsh|wscript|cscript)\b</field>
+           type="pcre2">(?i)(?:&amp;&amp;|&amp;|\|)\s*(?:(?:call\s+)?(?:start\s+)?(?:["']?[^\s"']+\.(?:exe|dll|bat|cmd|com|msi|ps1)["']?)|rundll32|regsvr32|msiexec|powershell|pwsh|wscript|cscript)\b</field>
     <description>CMD downloaded remote content and chained its execution: $(win.eventdata.commandLine)</description>
     <mitre>
       <id>T1059.003</id>
@@ -125,7 +125,7 @@
     <field name="win.eventdata.commandLine"
            type="pcre2">(?i)\breg(?:\.exe)?\s+add\b</field>
     <field name="win.eventdata.commandLine"
-           type="pcre2">(?i)\\CurrentVersion\\Run(?:Once)?\b</field>
+           type="pcre2">(?i)\\{1,2}CurrentVersion\\{1,2}Run(?:Once)?\b</field>
     <description>CMD modified a Registry Run or RunOnce persistence location: $(win.eventdata.commandLine)</description>
     <mitre>
       <id>T1059.003</id>

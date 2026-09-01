@@ -86,7 +86,7 @@ Unix Shell execution:       validated
 Kerberoasting:              validated
 AS-REP Roasting:            validated
 LSASS credential dumping:   validated and tuned
-NTDS IFM extraction:        validated; stdin limitation documented
+NTDS IFM extraction:        validated through controlled IFM and process-telemetry testing
 PowerView reconnaissance:   prevention preserved; CredSSP read-only behavioral retest validated
 SharpView enumeration:      explicit-DC LDAP success; rules 100522/100523 + negative control validated
 adPEAS enumeration:         standard WinRM partial; CredSSP retest + LDAP + rule 100520 validated
@@ -97,13 +97,17 @@ Nmap SYN scan:              execution + packet proof + pktmon/Wazuh detection va
 PsExec remote execution:    validated as SYSTEM; Wazuh 92650 level 12
 WinRM remote execution:     validated; Wazuh 100331 level 12
 Delegated GPO persistence:  validated/rolled back; Wazuh 60229, endpoint Sysmon gap
-Chisel reverse tunnel:      genuine low-user tunnel + pinned rules 100525/100526 validated; generic behavior rule 100543 added
-HTTP credential exfil:      receiver integrity validated; layered 100530/531/532/544/545 hardening deployed, fresh live retest pending
-DNS credential exfil:       eight chunks reconstructed; layered 100533/534/535/546 hardening deployed, fresh live retest pending
+Chisel reverse tunnel:      genuine low-user tunnel + pinned rules 100525/100526 validated; behavioral rule 100543 included
+HTTP credential exfil:      receiver integrity + layered behavioral detection validated; current hardening deployed and regression-tested
+DNS credential exfil:       eight chunks reconstructed + layered behavioral detection validated; current hardening deployed and regression-tested
 Defender preference tamper: exclusion change + rule 100536 + read-only FP + cleanup validated
 AMSI bypass attempt:        Defender prevention + rule 100538 + harmless AMSI-text FP validated
 MSSQL xp_cmdshell:          rules 100539-100541 + payload independence + FP boundaries + index delivery validated
 ```
+
+Status entries reflect controlled lab exercises mapped to the custom Wazuh rules
+and MITRE ATT&CK techniques above. Rule maintenance is checked with Wazuh parser
+validation, deployed/repository hash reconciliation, and the regression suite.
 
 ## Workflow
 

@@ -76,6 +76,35 @@ class RuleHardeningTests(unittest.TestCase):
         self.assertIn("92900", parent.split(",") if parent else [])
         self.assertIsNone(broad_exclusion.search(r"C:\Users\Public\renamed-dumper.exe"))
 
+    def test_cmd_download_then_call_matches_real_chain(self) -> None:
+        rules = load_rules("cmd_detection.xml")
+        fields = rules["100330"].findall("field[@name='win.eventdata.commandLine']")
+        self.assertEqual(len(fields), 2)
+        retrieval = re.compile(fields[0].text or "")
+        execution = re.compile(fields[1].text or "")
+        positive = r"cmd.exe /d /c curl.exe http://127.0.0.1:9/test.cmd -o %TEMP%\test.cmd & call %TEMP%\test.cmd"
+        self.assertIsNotNone(retrieval.search(positive), positive)
+        self.assertIsNotNone(execution.search(positive), positive)
+        no_execution = r"cmd.exe /d /c curl.exe http://127.0.0.1:9/test.cmd -o %TEMP%\test.cmd & echo downloaded"
+        self.assertIsNotNone(retrieval.search(no_execution), no_execution)
+        self.assertIsNone(execution.search(no_execution))
+
+    def test_cmd_run_key_supports_live_serialized_path_forms(self) -> None:
+        rules = load_rules("cmd_detection.xml")
+        fields = rules["100334"].findall("field[@name='win.eventdata.commandLine']")
+        self.assertEqual(len(fields), 2)
+        reg_add = re.compile(fields[0].text or "")
+        run_key = re.compile(fields[1].text or "")
+        for command in [
+            r"cmd.exe /c reg.exe add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v Test /d cmd.exe /f",
+            r"cmd.exe /c reg.exe add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v Test /d cmd.exe /f",
+        ]:
+            self.assertIsNotNone(reg_add.search(command), command)
+            self.assertIsNotNone(run_key.search(command), command)
+        wrong_key = r"cmd.exe /c reg.exe add HKCU\Software\Microsoft\Windows\CurrentVersion\Runaway /v Test /d cmd.exe /f"
+        self.assertIsNotNone(reg_add.search(wrong_key), wrong_key)
+        self.assertIsNone(run_key.search(wrong_key))
+
     def test_cmd_domain_discovery_matches_real_unc_share_syntax(self) -> None:
         rules = load_rules("cmd_detection.xml")
         domain_discovery = re.compile(field_pattern(rules["100312"], "win.eventdata.commandLine"))
