@@ -46,6 +46,16 @@ def field_pattern(rule: ET.Element, field_name: str) -> str:
 
 
 class RuleHardeningTests(unittest.TestCase):
+    def test_wpad_lookup_is_domain_independent_and_label_bound(self) -> None:
+        rule = load_rules("ipv6_wpad_detection.xml")["100461"]
+        pattern = re.compile(field_pattern(rule, "win.eventdata.queryName"))
+        for query in ["wpad", "wpad.", "wpad.simulation.local", "wpad.corp.example", "WPAD.Branch.Example.COM.", "wpad.xn--bcher-kva.example"]:
+            with self.subTest(query=query):
+                self.assertIsNotNone(pattern.search(query))
+        for query in ["", "notwpad.example", "wpad-evil.example", "www.wpad.example", "dc01.example", "wpad..example", "wpad.example/path", "wpad.example\n", "wpad. example"]:
+            with self.subTest(query=query):
+                self.assertIsNone(pattern.search(query))
+
     def test_mssql_execution_rule_keeps_live_proven_parent(self) -> None:
         rules = load_rules("mssql_xp_cmdshell_detection.xml")
         self.assertEqual(child_text(rules["100541"], "if_sid"), "100300")

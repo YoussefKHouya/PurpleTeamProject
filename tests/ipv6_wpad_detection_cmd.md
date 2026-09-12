@@ -2,7 +2,9 @@
 
 ## Objective
 
-Validate Wazuh visibility for DHCPv6 client configuration activity and the controlled WPAD DNS lookup on WIN01.
+Validate Wazuh visibility for DHCPv6 client configuration activity and WPAD DNS lookups on WIN01.
+
+Rule `100461` matches the bare hostname `wpad` or `wpad.<any DNS suffix>`, case-insensitively, including an optional trailing root dot. The `simulation.local` commands below remain examples for the isolated lab, not a rule restriction. A lookup alone does not prove poisoning or interception. The domain-independent matcher has local regression coverage; the historical live result covers the original lab lookup.
 
 ## Telemetry prerequisites
 

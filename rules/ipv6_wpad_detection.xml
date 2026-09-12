@@ -10,13 +10,14 @@
     <group>ipv6,dhcpv6,configuration_change,</group>
   </rule>
 
-  <!-- Exact WPAD lookup observed during the controlled lab scenario. -->
+  <!-- Domain-independent WPAD hostname lookup; visibility, not proof of poisoning.
+       Accept a bare hostname or DNS suffix, case-insensitively, with an optional root dot. -->
   <rule id="100461" level="10">
     <if_sid>60009</if_sid>
     <field name="win.system.providerName">^Microsoft-Windows-DNS-Client$</field>
     <field name="win.system.eventID">^3020$</field>
     <field name="win.system.channel">^Microsoft-Windows-DNS-Client/Operational$</field>
-    <field name="win.eventdata.queryName">^wpad\.simulation\.local$</field>
+    <field name="win.eventdata.queryName" type="pcre2">(?i)^wpad(?:\.[a-z0-9_-]+)*\.?(?![\s\S])</field>
     <description>WPAD DNS lookup: $(win.eventdata.queryName) on $(win.system.computer)</description>
     <mitre>
       <id>T1557</id>
